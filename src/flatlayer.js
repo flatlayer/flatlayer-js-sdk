@@ -1,33 +1,31 @@
 /**
- * flatlayer-cms.js
- * A comprehensive JavaScript library for interacting with the Flatlayer CMS API.
- * This library provides methods for content retrieval, filtering, searching,
- * and image handling.
+ * flatlayer.js
+ * A JavaScript SDK for interacting with the Flatlayer CMS API.
+ * Focused on content retrieval, searching, and image handling.
  */
 
-class FlatlayerCMS {
+class FlatlayerSDK {
     /**
-     * Create a new FlatlayerCMS instance.
+     * Create a new FlatlayerSDK instance.
      * @param {string} baseUrl - The base URL of the Flatlayer CMS API.
      */
     constructor(baseUrl) {
-        // Ensure the base URL doesn't end with a slash
         this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     }
 
     /**
-     * Fetch data from the API with error handling.
-     * @param {string} url - The URL to fetch from.
+     * Send a request to the API with error handling.
+     * @param {string} url - The full URL to fetch from.
      * @param {Object} options - Fetch options.
      * @returns {Promise<Object>} The JSON response from the API.
      * @throws {Error} If the response is not ok.
      * @private
      */
-    async fetchWithErrorHandling(url, options = {}) {
+    async _request(url, options = {}) {
         const response = await fetch(url, options);
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'An error occurred');
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
         return response.json();
     }
@@ -35,18 +33,19 @@ class FlatlayerCMS {
     /**
      * Build a URL with query parameters.
      * @param {string} path - The API endpoint path.
-     * @param {Object} queryParams - The query parameters to include.
+     * @param {Object} params - The query parameters to include.
      * @returns {string} The complete URL with query parameters.
      * @private
      */
-    buildUrl(path, queryParams = {}) {
+    _buildUrl(path, params = {}) {
         const url = new URL(`${this.baseUrl}${path}`);
-        Object.entries(queryParams).forEach(([key, value]) => {
-            if (typeof value === 'object') {
-                // Stringify objects (like filters) before adding to URL
-                url.searchParams.append(key, JSON.stringify(value));
-            } else {
-                url.searchParams.append(key, value);
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                if (typeof value === 'object') {
+                    url.searchParams.append(key, JSON.stringify(value));
+                } else {
+                    url.searchParams.append(key, value.toString());
+                }
             }
         });
         return url.toString();
@@ -72,20 +71,16 @@ class FlatlayerCMS {
             search = null,
         } = options;
 
-        const queryParams = {
+        const params = {
             page,
             per_page: perPage,
             filter: { ...filter },
             fields,
+            search,
         };
 
-        // Add search query to filter if provided
-        if (search) {
-            queryParams.filter.$search = search;
-        }
-
-        const url = this.buildUrl(`/content/${type}`, queryParams);
-        return this.fetchWithErrorHandling(url);
+        const url = this._buildUrl(`/content/${type}`, params);
+        return this._request(url);
     }
 
     /**
@@ -96,8 +91,8 @@ class FlatlayerCMS {
      * @returns {Promise<Object>} The requested content item.
      */
     async getContentItem(type, slug, fields = []) {
-        const url = this.buildUrl(`/content/${type}/${slug}`, { fields });
-        return this.fetchWithErrorHandling(url);
+        const url = this._buildUrl(`/content/${type}/${slug}`, { fields });
+        return this._request(url);
     }
 
     /**
@@ -119,15 +114,15 @@ class FlatlayerCMS {
             fields = [],
         } = options;
 
-        const queryParams = {
+        const params = {
             page,
             per_page: perPage,
             filter: { ...filter, $search: query },
             fields,
         };
 
-        const url = this.buildUrl(`/content/${type || ''}`, queryParams);
-        return this.fetchWithErrorHandling(url);
+        const url = this._buildUrl(`/content/${type || ''}`, params);
+        return this._request(url);
     }
 
     /**
@@ -148,12 +143,12 @@ class FlatlayerCMS {
             path += `.${format}`;
         }
 
-        const queryParams = {};
-        if (width) queryParams.w = width;
-        if (height) queryParams.h = height;
-        if (quality) queryParams.q = quality;
+        const params = {};
+        if (width) params.w = width;
+        if (height) params.h = height;
+        if (quality) params.q = quality;
 
-        return this.buildUrl(path, queryParams);
+        return this._buildUrl(path, params);
     }
 
     /**
@@ -211,8 +206,8 @@ class FlatlayerCMS {
 
 // Export for CommonJS environments
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = FlatlayerCMS;
+    module.exports = FlatlayerSDK;
 }
 
 // Export for ES6 environments
-export default FlatlayerCMS;
+export default FlatlayerSDK;

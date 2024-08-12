@@ -1,7 +1,7 @@
 {
   "name": "flatlayer",
-  "version": "1.0.0",
-  "description": "A comprehensive JavaScript library for interacting with the Flatlayer CMS API",
+  "version": "0.1.0",
+  "description": "A JavaScript library for interacting with the Flatlayer CMS API",
   "main": "dist/flatlayer.js",
   "module": "dist/flatlayer.mjs",
   "types": "dist/flatlayer.d.ts",
