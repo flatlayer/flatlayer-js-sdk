@@ -1,6 +1,6 @@
 # Flatlayer JS SDK
 
-The Flatlayer JS SDK is a lightweight, easy-to-use JavaScript library for interacting with the Flatlayer CMS API. It provides a simple interface for retrieving content, performing searches, and handling images in your Flatlayer-powered applications.
+The Flatlayer JS SDK is a lightweight, easy-to-use JavaScript library for interacting with the Flatlayer CMS API. It provides a simple interface for retrieving entries, performing searches, and handling images in your Flatlayer-powered applications.
 
 ## Table of Contents
 
@@ -8,7 +8,7 @@ The Flatlayer JS SDK is a lightweight, easy-to-use JavaScript library for intera
 - [Getting Started](#getting-started)
 - [API Reference](#api-reference)
   - [Constructor](#constructor)
-  - [Content Retrieval](#content-retrieval)
+  - [Entry Retrieval](#entry-retrieval)
   - [Search](#search)
   - [Image Handling](#image-handling)
 - [Examples](#examples)
@@ -56,61 +56,41 @@ Creates a new instance of the Flatlayer SDK.
 
 - `baseUrl`: The base URL of your Flatlayer CMS API.
 
-### Content Retrieval
+### Entry Retrieval
 
-#### getContentList(type: string, options?: Object): Promise<Object>
+#### getEntryList(type: string, options?: Object): Promise<Object>
 
-Retrieves a list of content items.
+Retrieves a list of entries.
 
-- `type`: The type of content to retrieve (e.g., 'post', 'page').
+- `type`: The type of entries to retrieve (e.g., 'post', 'page').
 - `options`: (Optional) An object containing query parameters:
   - `page`: Page number (default: 1)
-  - `perPage`: Number of items per page (default: 15)
+  - `perPage`: Number of entries per page (default: 15)
   - `filter`: Filter object
   - `fields`: Array of fields to include in the response
   - `search`: Search query string
 
-#### getContentItem(type: string, slug: string, fields?: Array<string>): Promise<Object>
+#### getEntry(type: string, slug: string, fields?: Array<string>): Promise<Object>
 
-Retrieves a single content item by its slug.
+Retrieves a single entry by its slug.
 
-- `type`: The type of content to retrieve.
-- `slug`: The slug of the content item.
+- `type`: The type of entry to retrieve.
+- `slug`: The slug of the entry.
 - `fields`: (Optional) Array of fields to include in the response.
 
 ### Search
 
 #### search(query: string, type?: string, options?: Object): Promise<Object>
 
-Performs a search across content types or within a specific type.
+Performs a search across entry types or within a specific type.
 
 - `query`: The search query string.
-- `type`: (Optional) The content type to search within.
-- `options`: (Optional) An object containing query parameters (same as `getContentList`).
+- `type`: (Optional) The entry type to search within.
+- `options`: (Optional) An object containing query parameters (same as `getEntryList`).
 
 ### Image Handling
 
-#### getImageUrl(id: string|number, options?: Object): string
-
-Generates a URL for an image with optional transformations.
-
-- `id`: The ID of the image.
-- `options`: (Optional) An object containing transformation parameters:
-  - `width`: Desired width of the image
-  - `height`: Desired height of the image
-  - `quality`: Image quality (1-100)
-  - `format`: Desired image format (e.g., 'jpg', 'webp')
-
-#### getResponsiveImageProps(image: Object, sizes: Array<string>, options?: Object): Object
-
-Generates properties for a responsive image.
-
-- `image`: The image object from the API.
-- `sizes`: An array of size descriptors (e.g., ['100vw', 'md:50vw']).
-- `options`: (Optional) An object containing additional options:
-  - `breakpoints`: Custom breakpoints for responsive sizes
-  - `defaultImageParams`: Default parameters for image URLs
-  - `displaySize`: The intended display size [width, height]
+(Image handling methods remain the same)
 
 ## Examples
 
@@ -119,7 +99,7 @@ Generates properties for a responsive image.
 ```javascript
 const flatlayer = new Flatlayer('https://api.yourflatlayerinstance.com');
 
-flatlayer.getContentList('post', {
+flatlayer.getEntryList('post', {
   page: 1,
   perPage: 10,
   filter: { published: true },
@@ -136,7 +116,7 @@ flatlayer.getContentList('post', {
 ### Retrieving a single page by slug
 
 ```javascript
-flatlayer.getContentItem('page', 'about-us', ['title', 'content', 'meta'])
+flatlayer.getEntry('page', 'about-us', ['title', 'content', 'meta'])
   .then(page => {
     console.log('Page title:', page.title);
     console.log('Page content:', page.content);

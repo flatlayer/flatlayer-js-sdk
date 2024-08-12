@@ -55,17 +55,17 @@ class Flatlayer {
     }
 
     /**
-     * Get a list of content items.
-     * @param {string} type - The type of content to retrieve (e.g., 'post', 'page').
+     * Get a list of entries.
+     * @param {string} type - The type of entry to retrieve (e.g., 'post', 'page').
      * @param {Object} options - Options for the request.
      * @param {number} [options.page=1] - The page number to retrieve.
-     * @param {number} [options.perPage=15] - The number of items per page.
+     * @param {number} [options.perPage=15] - The number of entries per page.
      * @param {Object} [options.filter={}] - Filters to apply to the query.
      * @param {Array} [options.fields=[]] - Fields to include in the response.
      * @param {string} [options.search=null] - Search query to apply.
-     * @returns {Promise<Object>} The paginated list of content items.
+     * @returns {Promise<Object>} The paginated list of entries.
      */
-    async getContentList(type, options = {}) {
+    async getEntryList(type, options = {}) {
         const {
             page = 1,
             perPage = 15,
@@ -87,24 +87,24 @@ class Flatlayer {
     }
 
     /**
-     * Get a single content item by its slug.
-     * @param {string} type - The type of content to retrieve.
-     * @param {string} slug - The slug of the content item.
+     * Get a single entry by its slug.
+     * @param {string} type - The type of entry to retrieve.
+     * @param {string} slug - The slug of the entry.
      * @param {Array} [fields=[]] - Fields to include in the response.
-     * @returns {Promise<Object>} The requested content item.
+     * @returns {Promise<Object>} The requested entry.
      */
-    async getContentItem(type, slug, fields = []) {
+    async getEntry(type, slug, fields = []) {
         const url = this._buildUrl(`/content/${type}/${slug}`, { fields });
         return this._request(url);
     }
 
     /**
-     * Perform a search across content types or within a specific type.
+     * Perform a search across entry types or within a specific type.
      * @param {string} query - The search query.
-     * @param {string} [type=null] - The content type to search within (optional).
+     * @param {string} [type=null] - The entry type to search within (optional).
      * @param {Object} options - Options for the search request.
      * @param {number} [options.page=1] - The page number to retrieve.
-     * @param {number} [options.perPage=15] - The number of items per page.
+     * @param {number} [options.perPage=15] - The number of entries per page.
      * @param {Object} [options.filter={}] - Additional filters to apply.
      * @param {Array} [options.fields=[]] - Fields to include in the response.
      * @returns {Promise<Object>} The search results.
