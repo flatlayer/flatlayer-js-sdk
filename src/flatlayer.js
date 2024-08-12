@@ -1,7 +1,7 @@
 import FlatlayerImage from './flatlayer-image.js';
 
 /**
- * flatlayer.js
+ * Flatlayer class
  * A JavaScript SDK for interacting with the Flatlayer CMS API.
  * Focused on content retrieval, searching, and image handling.
  */
@@ -174,23 +174,23 @@ class Flatlayer {
     }
 
     /**
-     * Generate responsive image properties for use in an <img> tag.
+     * Generate responsive image attributes for use in an <img> tag.
      * @param {Object} image - The image object from the API.
      * @param {Array} sizes - An array of size descriptors (e.g., ['100vw', 'md:50vw']).
      * @param {Object} options - Additional options for image generation.
      * @param {Object} [options.breakpoints] - Custom breakpoints for responsive sizes.
      * @param {Object} [options.defaultImageParams] - Default parameters for image URLs.
      * @param {Array} [options.displaySize] - The intended display size [width, height].
-     * @returns {string} An HTML img tag with responsive attributes.
+     * @returns {Object} An object with responsive image attributes.
      */
-    getResponsiveImageProps(image, sizes, options = {}) {
+    getResponsiveImageAttributes(image, sizes, options = {}) {
         const flatlayerImage = this.createImage(
             image,
             options.defaultImageParams,
             options.breakpoints,
             options.imageEndpoint
         );
-        return flatlayerImage.generateImgTag(sizes, {}, true, options.displaySize);
+        return flatlayerImage.generateImgAttributes(sizes, {}, options.isFluid !== false, options.displaySize);
     }
 }
 

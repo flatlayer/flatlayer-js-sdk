@@ -1,6 +1,6 @@
 # Flatlayer JS SDK
 
-The Flatlayer JS SDK is a lightweight, easy-to-use JavaScript library for interacting with the Flatlayer CMS API. It provides a simple interface for retrieving entries, performing searches, and handling images in your Flatlayer-powered applications.
+The Flatlayer JS SDK is a lightweight, easy-to-use JavaScript library for interacting with the Flatlayer CMS API. It provides a simple interface for retrieving entries, performing searches, and handling responsive images in your Flatlayer-powered applications.
 
 ## Table of Contents
 
@@ -12,6 +12,8 @@ The Flatlayer JS SDK is a lightweight, easy-to-use JavaScript library for intera
   - [Search](#search)
   - [Image Handling](#image-handling)
 - [Examples](#examples)
+  - [Basic Usage](#basic-usage)
+  - [Using FlatlayerImage](#using-flatlayerimage)
 - [Advanced Usage](#advanced-usage)
 - [Error Handling](#error-handling)
 - [TypeScript Support](#typescript-support)
@@ -34,7 +36,7 @@ yarn add flatlayer-sdk
 
 ## Getting Started
 
-To start using the Flatlayer JS SDK, you need to create an instance of the `Flatlayer` class with the base URL of your Flatlayer CMS API:
+To start using the Flatlayer JS SDK, create an instance of the `Flatlayer` class with the base URL of your Flatlayer CMS API:
 
 ```javascript
 import Flatlayer from 'flatlayer-sdk';
@@ -42,19 +44,20 @@ import Flatlayer from 'flatlayer-sdk';
 const flatlayer = new Flatlayer('https://api.yourflatlayerinstance.com');
 ```
 
-Now you're ready to start interacting with your Flatlayer CMS!
+Now you're ready to interact with your Flatlayer CMS!
 
 ## API Reference
 
 ### Constructor
 
 ```javascript
-new Flatlayer(baseUrl: string)
+new Flatlayer(baseUrl: string, imageEndpoint?: string)
 ```
 
 Creates a new instance of the Flatlayer SDK.
 
 - `baseUrl`: The base URL of your Flatlayer CMS API.
+- `imageEndpoint`: (Optional) The base URL for image endpoints. If not provided, it defaults to `${baseUrl}/image`.
 
 ### Entry Retrieval
 
@@ -90,42 +93,72 @@ Performs a search across entry types or within a specific type.
 
 ### Image Handling
 
-(Image handling methods remain the same)
+#### getImageUrl(id: string|number, options?: Object): string
+
+Gets the URL for an image with optional transformations.
+
+- `id`: The ID of the image.
+- `options`: (Optional) An object containing transformation options:
+  - `width`: The desired width of the image.
+  - `height`: The desired height of the image.
+  - `quality`: The quality of the image (1-100).
+  - `format`: The desired image format (e.g., 'jpg', 'webp').
+
+#### createImage(imageData: Object, defaultTransforms?: Object, breakpoints?: Object, imageEndpoint?: string): FlatlayerImage
+
+Creates a new FlatlayerImage instance for advanced image handling.
+
+- `imageData`: The image data object from the API.
+- `defaultTransforms`: (Optional) Default transformation parameters.
+- `breakpoints`: (Optional) Custom breakpoints for responsive sizes.
+- `imageEndpoint`: (Optional) Custom image endpoint URL.
+
+#### getResponsiveImageAttributes(image: Object, sizes: Array<string>, options?: Object): Object
+
+Generates responsive image attributes for use in an `<img>` tag.
+
+- `image`: The image object from the API.
+- `sizes`: An array of size descriptors (e.g., ['100vw', 'md:50vw']).
+- `options`: (Optional) Additional options for image generation:
+  - `breakpoints`: Custom breakpoints for responsive sizes.
+  - `defaultImageParams`: Default parameters for image URLs.
+  - `displaySize`: The intended display size [width, height].
+  - `isFluid`: Whether to use fluid sizing (default: true).
 
 ## Examples
 
-### Fetching a list of blog posts
+### Basic Usage
+
+#### Fetching a list of blog posts
 
 ```javascript
-const flatlayer = new Flatlayer('https://api.yourflatlayerinstance.com');
-
 flatlayer.getEntryList('post', {
   page: 1,
   perPage: 10,
   filter: { published: true },
   fields: ['title', 'excerpt', 'author', 'published_at']
 })
-  .then(response => {
-    console.log('Blog posts:', response.data);
-    console.log('Total posts:', response.total);
-    console.log('Current page:', response.current_page);
-  })
-  .catch(error => console.error('Error fetching blog posts:', error));
+        .then(response => {
+          console.log('Blog posts:', response.data);
+          console.log('Total posts:', response.total);
+          console.log('Current page:', response.current_page);
+        })
+        .catch(error => console.error('Error fetching blog posts:', error));
 ```
 
-### Retrieving a single page by slug
+#### Retrieving a single page by slug
 
 ```javascript
 flatlayer.getEntry('page', 'about-us', ['title', 'content', 'meta'])
-  .then(page => {
-    console.log('Page title:', page.title);
-    console.log('Page content:', page.content);
-    console.log('Page meta:', page.meta);
-  })
-  .catch(error => console.error('Error fetching page:', error));
+        .then(page => {
+          console.log('Page title:', page.title);
+          console.log('Page content:', page.content);
+          console.log('Page meta:', page.meta);
+        })
+        .catch(error => console.error('Error fetching page:', error));
 ```
 
-### Performing a search
+#### Performing a search
 
 ```javascript
 flatlayer.search('JavaScript', 'post', {
@@ -133,49 +166,77 @@ flatlayer.search('JavaScript', 'post', {
   perPage: 20,
   fields: ['title', 'excerpt', 'author']
 })
-  .then(results => {
-    console.log('Search results:', results.data);
-    console.log('Total results:', results.total);
-  })
-  .catch(error => console.error('Error performing search:', error));
+        .then(results => {
+          console.log('Search results:', results.data);
+          console.log('Total results:', results.total);
+        })
+        .catch(error => console.error('Error performing search:', error));
 ```
 
-### Generating a responsive image
+### Using FlatlayerImage
+
+The `FlatlayerImage` class provides advanced image handling capabilities, including generating responsive image attributes.
+
+#### Creating a FlatlayerImage instance
 
 ```javascript
-const image = {
+const imageData = {
   id: '12345',
-  alt: 'A beautiful landscape'
+  dimensions: { width: 1200, height: 800 },
+  custom_properties: { alt: 'A beautiful landscape' }
 };
 
-const responsiveProps = flatlayer.getResponsiveImageProps(image, 
-  ['100vw', 'md:50vw', 'lg:33vw'],
-  {
-    breakpoints: { md: 768, lg: 1024 },
-    defaultImageParams: { quality: 80 },
-    displaySize: [800, 600]
-  }
+const flatlayerImage = flatlayer.createImage(imageData, { quality: 80 });
+```
+
+#### Generating responsive image attributes
+
+```javascript
+const imgAttributes = flatlayerImage.generateImgAttributes(
+        ['100vw', 'md:50vw', 'lg:33vw'],
+        { class: 'my-image' },
+        true,
+        [800, 600]
 );
 
-console.log('Responsive image props:', responsiveProps);
-
-// Use the props in your HTML
-const imgTag = `<img src="${responsiveProps.src}" 
-                     srcset="${responsiveProps.srcset}" 
-                     sizes="${responsiveProps.sizes}" 
-                     alt="${responsiveProps.alt}" 
-                     width="${responsiveProps.width}" 
-                     height="${responsiveProps.height}">`;
+console.log('Responsive image attributes:', imgAttributes);
 ```
+
+#### Using in Sveltekit
+
+In a Svelte component:
+
+```svelte
+<script>
+import Flatlayer from 'flatlayer-sdk';
+
+const flatlayer = new Flatlayer('https://api.yourflatlayerinstance.com');
+
+export let imageData;
+let imgAttributes;
+
+$: {
+  const flatlayerImage = flatlayer.createImage(imageData, { quality: 80 });
+  imgAttributes = flatlayerImage.generateImgAttributes(
+    ['100vw', 'md:50vw', 'lg:33vw'],
+    { class: 'my-image' },
+    true,
+    [800, 600]
+  );
+}
+</script>
+
+<img {...imgAttributes} />
+```
+
+This example creates a responsive image that adapts to different viewport sizes and device pixel ratios.
 
 ## Advanced Usage
 
 ### Using filters
 
-The Flatlayer CMS supports advanced filtering options. Here's an example of using complex filters:
-
 ```javascript
-flatlayer.getContentList('product', {
+flatlayer.getEntryList('product', {
   filter: {
     category: 'electronics',
     price: { $gte: 100, $lte: 500 },
@@ -186,13 +247,11 @@ flatlayer.getContentList('product', {
     ]
   }
 })
-  .then(response => console.log('Filtered products:', response.data))
-  .catch(error => console.error('Error fetching products:', error));
+        .then(response => console.log('Filtered products:', response.data))
+        .catch(error => console.error('Error fetching products:', error));
 ```
 
 ### Pagination
-
-The SDK automatically handles pagination. You can easily navigate through pages:
 
 ```javascript
 async function getAllPosts() {
@@ -201,7 +260,7 @@ async function getAllPosts() {
   let hasMorePages = true;
 
   while (hasMorePages) {
-    const response = await flatlayer.getContentList('post', { page, perPage: 100 });
+    const response = await flatlayer.getEntryList('post', { page, perPage: 100 });
     allPosts = allPosts.concat(response.data);
     hasMorePages = response.current_page < response.last_page;
     page++;
@@ -211,8 +270,8 @@ async function getAllPosts() {
 }
 
 getAllPosts()
-  .then(posts => console.log('All posts:', posts))
-  .catch(error => console.error('Error fetching all posts:', error));
+        .then(posts => console.log('All posts:', posts))
+        .catch(error => console.error('Error fetching all posts:', error));
 ```
 
 ## Error Handling
@@ -220,15 +279,15 @@ getAllPosts()
 The SDK uses native Promises, so you can use `.catch()` to handle errors:
 
 ```javascript
-flatlayer.getContentItem('post', 'non-existent-post')
-  .then(post => console.log('Post:', post))
-  .catch(error => {
-    if (error.message.includes('404')) {
-      console.error('Post not found');
-    } else {
-      console.error('An error occurred:', error.message);
-    }
-  });
+flatlayer.getEntry('post', 'non-existent-post')
+        .then(post => console.log('Post:', post))
+        .catch(error => {
+          if (error.message.includes('404')) {
+            console.error('Post not found');
+          } else {
+            console.error('An error occurred:', error.message);
+          }
+        });
 ```
 
 ## TypeScript Support
@@ -246,7 +305,7 @@ interface BlogPost {
   author: string;
 }
 
-flatlayer.getContentItem<BlogPost>('post', 'my-first-post')
+flatlayer.getEntry<BlogPost>('post', 'my-first-post')
         .then(post => {
           console.log(post.title);  // TypeScript knows this exists
           console.log(post.content);
