@@ -1,16 +1,19 @@
+import FlatlayerImage from './flatlayer-image.js';
+
 /**
  * flatlayer.js
  * A JavaScript SDK for interacting with the Flatlayer CMS API.
  * Focused on content retrieval, searching, and image handling.
  */
-
-class FlatlayerSDK {
+class Flatlayer {
     /**
-     * Create a new FlatlayerSDK instance.
+     * Create a new Flatlayer instance.
      * @param {string} baseUrl - The base URL of the Flatlayer CMS API.
+     * @param {string} [imageEndpoint] - The base URL for image endpoints. If not provided, it defaults to `${baseUrl}/image`.
      */
-    constructor(baseUrl) {
+    constructor(baseUrl, imageEndpoint = null) {
         this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        this.imageEndpoint = imageEndpoint || `${this.baseUrl}/image`;
     }
 
     /**
@@ -137,7 +140,7 @@ class FlatlayerSDK {
      */
     getImageUrl(id, options = {}) {
         const { width, height, quality, format } = options;
-        let path = `/image/${id}`;
+        let path = `/${id}`;
 
         if (format) {
             path += `.${format}`;
@@ -148,7 +151,26 @@ class FlatlayerSDK {
         if (height) params.h = height;
         if (quality) params.q = quality;
 
-        return this._buildUrl(path, params);
+        const queryParams = new URLSearchParams(params).toString();
+        return `${this.imageEndpoint}${path}${queryParams ? `?${queryParams}` : ''}`;
+    }
+
+    /**
+     * Create a new FlatlayerImage instance.
+     * @param {Object} imageData - The image data object from the API.
+     * @param {Object} [defaultTransforms={}] - Default transformation parameters.
+     * @param {Object} [breakpoints={}] - Custom breakpoints for responsive sizes.
+     * @param {string} [imageEndpoint=null] - Custom image endpoint URL. If not provided, it uses the Flatlayer instance's imageEndpoint.
+     * @returns {FlatlayerImage} A new FlatlayerImage instance.
+     */
+    createImage(imageData, defaultTransforms = {}, breakpoints = {}, imageEndpoint = null) {
+        return new FlatlayerImage(
+            this.baseUrl,
+            imageData,
+            defaultTransforms,
+            breakpoints,
+            imageEndpoint || this.imageEndpoint
+        );
     }
 
     /**
@@ -159,55 +181,17 @@ class FlatlayerSDK {
      * @param {Object} [options.breakpoints] - Custom breakpoints for responsive sizes.
      * @param {Object} [options.defaultImageParams] - Default parameters for image URLs.
      * @param {Array} [options.displaySize] - The intended display size [width, height].
-     * @returns {Object} An object with src, srcset, sizes, and other relevant properties.
+     * @returns {string} An HTML img tag with responsive attributes.
      */
     getResponsiveImageProps(image, sizes, options = {}) {
-        const {
-            breakpoints = { sm: 640, md: 768, lg: 1024, xl: 1280, '2xl': 1536 },
-            defaultImageParams = { quality: 80 },
-            displaySize,
-        } = options;
-
-        const srcset = [];
-        const parsedSizes = [];
-
-        // Parse size descriptors
-        sizes.forEach(size => {
-            const [breakpoint, value] = size.split(':');
-            if (value) {
-                const width = breakpoints[breakpoint];
-                parsedSizes.push(`(min-width: ${width}px) ${value}`);
-            } else {
-                parsedSizes.push(breakpoint);
-            }
-        });
-
-        // Calculate the maximum width based on breakpoints and display size
-        const maxWidth = Math.max(...Object.values(breakpoints),
-            displaySize ? displaySize[0] : 0);
-
-        // Generate srcset for various widths
-        for (let width = 100; width <= maxWidth; width = Math.min(width * 2, maxWidth)) {
-            const url = this.getImageUrl(image.id, { ...defaultImageParams, width });
-            srcset.push(`${url} ${width}w`);
-        }
-
-        // Return an object with all necessary properties for a responsive image
-        return {
-            src: this.getImageUrl(image.id, defaultImageParams),
-            srcset: srcset.join(', '),
-            sizes: parsedSizes.join(', '),
-            alt: image.alt || '',
-            width: displaySize ? displaySize[0] : undefined,
-            height: displaySize ? displaySize[1] : undefined,
-        };
+        const flatlayerImage = this.createImage(
+            image,
+            options.defaultImageParams,
+            options.breakpoints,
+            options.imageEndpoint
+        );
+        return flatlayerImage.generateImgTag(sizes, {}, true, options.displaySize);
     }
 }
 
-// Export for CommonJS environments
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = FlatlayerSDK;
-}
-
-// Export for ES6 environments
-export default FlatlayerSDK;
+export default Flatlayer;

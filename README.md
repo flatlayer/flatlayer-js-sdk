@@ -7,10 +7,10 @@ The Flatlayer JS SDK is a lightweight, easy-to-use JavaScript library for intera
 - [Installation](#installation)
 - [Getting Started](#getting-started)
 - [API Reference](#api-reference)
-    - [Constructor](#constructor)
-    - [Content Retrieval](#content-retrieval)
-    - [Search](#search)
-    - [Image Handling](#image-handling)
+  - [Constructor](#constructor)
+  - [Content Retrieval](#content-retrieval)
+  - [Search](#search)
+  - [Image Handling](#image-handling)
 - [Examples](#examples)
 - [Advanced Usage](#advanced-usage)
 - [Error Handling](#error-handling)
@@ -32,20 +32,14 @@ Or using yarn:
 yarn add flatlayer-sdk
 ```
 
-Alternatively, you can include it directly in your HTML file:
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/flatlayer-sdk@1.1.0/dist/flatlayer.min.js"></script>
-```
-
 ## Getting Started
 
-To start using the Flatlayer JS SDK, you need to create an instance of the `FlatlayerSDK` class with the base URL of your Flatlayer CMS API:
+To start using the Flatlayer JS SDK, you need to create an instance of the `Flatlayer` class with the base URL of your Flatlayer CMS API:
 
 ```javascript
-import FlatlayerSDK from 'flatlayer-sdk';
+import Flatlayer from 'flatlayer-sdk';
 
-const flatlayer = new FlatlayerSDK('https://api.yourflatlayerinstance.com');
+const flatlayer = new Flatlayer('https://api.yourflatlayerinstance.com');
 ```
 
 Now you're ready to start interacting with your Flatlayer CMS!
@@ -55,10 +49,10 @@ Now you're ready to start interacting with your Flatlayer CMS!
 ### Constructor
 
 ```javascript
-new FlatlayerSDK(baseUrl: string)
+new Flatlayer(baseUrl: string)
 ```
 
-Creates a new instance of the FlatlayerSDK.
+Creates a new instance of the Flatlayer SDK.
 
 - `baseUrl`: The base URL of your Flatlayer CMS API.
 
@@ -70,11 +64,11 @@ Retrieves a list of content items.
 
 - `type`: The type of content to retrieve (e.g., 'post', 'page').
 - `options`: (Optional) An object containing query parameters:
-    - `page`: Page number (default: 1)
-    - `perPage`: Number of items per page (default: 15)
-    - `filter`: Filter object
-    - `fields`: Array of fields to include in the response
-    - `search`: Search query string
+  - `page`: Page number (default: 1)
+  - `perPage`: Number of items per page (default: 15)
+  - `filter`: Filter object
+  - `fields`: Array of fields to include in the response
+  - `search`: Search query string
 
 #### getContentItem(type: string, slug: string, fields?: Array<string>): Promise<Object>
 
@@ -102,10 +96,10 @@ Generates a URL for an image with optional transformations.
 
 - `id`: The ID of the image.
 - `options`: (Optional) An object containing transformation parameters:
-    - `width`: Desired width of the image
-    - `height`: Desired height of the image
-    - `quality`: Image quality (1-100)
-    - `format`: Desired image format (e.g., 'jpg', 'webp')
+  - `width`: Desired width of the image
+  - `height`: Desired height of the image
+  - `quality`: Image quality (1-100)
+  - `format`: Desired image format (e.g., 'jpg', 'webp')
 
 #### getResponsiveImageProps(image: Object, sizes: Array<string>, options?: Object): Object
 
@@ -114,16 +108,16 @@ Generates properties for a responsive image.
 - `image`: The image object from the API.
 - `sizes`: An array of size descriptors (e.g., ['100vw', 'md:50vw']).
 - `options`: (Optional) An object containing additional options:
-    - `breakpoints`: Custom breakpoints for responsive sizes
-    - `defaultImageParams`: Default parameters for image URLs
-    - `displaySize`: The intended display size [width, height]
+  - `breakpoints`: Custom breakpoints for responsive sizes
+  - `defaultImageParams`: Default parameters for image URLs
+  - `displaySize`: The intended display size [width, height]
 
 ## Examples
 
 ### Fetching a list of blog posts
 
 ```javascript
-const flatlayer = new FlatlayerSDK('https://api.yourflatlayerinstance.com');
+const flatlayer = new Flatlayer('https://api.yourflatlayerinstance.com');
 
 flatlayer.getContentList('post', {
   page: 1,
@@ -262,9 +256,9 @@ flatlayer.getContentItem('post', 'non-existent-post')
 The Flatlayer JS SDK includes TypeScript definitions. You can import and use the SDK in your TypeScript projects without any additional setup.
 
 ```typescript
-import FlatlayerSDK from 'flatlayer-sdk';
+import Flatlayer from 'flatlayer-sdk';
 
-const flatlayer: FlatlayerSDK = new FlatlayerSDK('https://api.yourflatlayerinstance.com');
+const flatlayer: Flatlayer = new Flatlayer('https://api.yourflatlayerinstance.com');
 
 interface BlogPost {
   title: string;
@@ -273,11 +267,11 @@ interface BlogPost {
 }
 
 flatlayer.getContentItem<BlogPost>('post', 'my-first-post')
-  .then(post => {
-    console.log(post.title);  // TypeScript knows this exists
-    console.log(post.content);
-    console.log(post.author);
-  });
+        .then(post => {
+          console.log(post.title);  // TypeScript knows this exists
+          console.log(post.content);
+          console.log(post.author);
+        });
 ```
 
 ## Contributing

@@ -1,5 +1,5 @@
 {
-  "name": "flatlayer",
+  "name": "flatlayer-sdk",
   "version": "0.1.0",
   "description": "A JavaScript library for interacting with the Flatlayer CMS API",
   "main": "dist/flatlayer.js",
