@@ -183,7 +183,7 @@ The `FlatlayerImage` class provides advanced image handling capabilities, includ
 const imageData = {
   id: '12345',
   dimensions: { width: 1200, height: 800 },
-  custom_properties: { alt: 'A beautiful landscape' }
+  meta: { alt: 'A beautiful landscape' }
 };
 
 const flatlayerImage = flatlayer.createImage(imageData, { quality: 80 });
@@ -193,10 +193,10 @@ const flatlayerImage = flatlayer.createImage(imageData, { quality: 80 });
 
 ```javascript
 const imgAttributes = flatlayerImage.generateImgAttributes(
-        ['100vw', 'md:50vw', 'lg:33vw'],
-        { class: 'my-image' },
-        true,
-        [800, 600]
+  ['100vw', 'md:50vw', 'lg:33vw'],
+  { class: 'my-image' },
+  true,
+  [800, 600]
 );
 
 console.log('Responsive image attributes:', imgAttributes);
