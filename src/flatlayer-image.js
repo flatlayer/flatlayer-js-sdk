@@ -205,7 +205,7 @@ class FlatlayerImage {
      */
     generateSizesAttribute(parsedSizes) {
         return Object.entries(parsedSizes)
-            .sort(([a], [b]) => b - a)
+            .sort(([a], [b]) => Number(b) - Number(a))
             .map(([breakpoint, size]) =>
                 breakpoint === '0'
                     ? this.formatSize(size)

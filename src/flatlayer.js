@@ -82,7 +82,7 @@ class Flatlayer {
             search,
         };
 
-        const url = this._buildUrl(`/content/${type}`, params);
+        const url = this._buildUrl(`/entry/${type}`, params);
         return this._request(url);
     }
 
@@ -94,14 +94,14 @@ class Flatlayer {
      * @returns {Promise<Object>} The requested entry.
      */
     async getEntry(type, slug, fields = []) {
-        const url = this._buildUrl(`/content/${type}/${slug}`, { fields });
+        const url = this._buildUrl(`/entry/${type}/${slug}`, { fields });
         return this._request(url);
     }
 
     /**
      * Perform a search across entry types or within a specific type.
+     * @param {string} type - The entry type to search within.
      * @param {string} query - The search query.
-     * @param {string} [type=null] - The entry type to search within (optional).
      * @param {Object} options - Options for the search request.
      * @param {number} [options.page=1] - The page number to retrieve.
      * @param {number} [options.perPage=15] - The number of entries per page.
@@ -109,7 +109,7 @@ class Flatlayer {
      * @param {Array} [options.fields=[]] - Fields to include in the response.
      * @returns {Promise<Object>} The search results.
      */
-    async search(query, type = null, options = {}) {
+    async search(type, query, options = {}) {
         const {
             page = 1,
             perPage = 15,
@@ -124,7 +124,7 @@ class Flatlayer {
             fields,
         };
 
-        const url = this._buildUrl(`/content/${type || ''}`, params);
+        const url = this._buildUrl(`/entry/${type || ''}`, params);
         return this._request(url);
     }
 
