@@ -29,7 +29,10 @@ class Flatlayer {
         const response = await fetch(url, options);
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
+            const error = new Error(errorMessage);
+            error.status = response.status;
+            throw error;
         }
         return response.json();
     }
