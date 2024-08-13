@@ -152,4 +152,96 @@ describe('Flatlayer SDK', () => {
             await expect(flatlayer.getEntry('post', 'non-existent')).rejects.toThrow('Not found');
         });
     });
+
+    describe('_request', () => {
+        test('should handle network errors', async () => {
+            fetch.mockRejectedValueOnce(new Error('Network error'));
+            await expect(flatlayer._request('https://api.example.com/test')).rejects.toThrow('Network error');
+        });
+    });
+
+    describe('_buildUrl', () => {
+        test('should build URL with complex query parameters', () => {
+            const url = flatlayer._buildUrl('/test', {
+                array: [1, 2, 3],
+                object: { key: 'value' },
+                nullValue: null,
+                undefinedValue: undefined
+            });
+            expect(url).toBe('https://api.example.com/test?array=%5B1%2C2%2C3%5D&object=%7B%22key%22%3A%22value%22%7D');
+        });
+    });
+
+    describe('search', () => {
+        test('should perform a search without specifying a type', async () => {
+            const mockResults = {
+                data: [{ id: 1, title: 'Search Result' }],
+                total: 1,
+                current_page: 1
+            };
+            fetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockResults)
+            });
+
+            const result = await flatlayer.search(null, 'test query');
+
+            expect(fetch).toHaveBeenCalledWith(
+                expect.stringMatching(/^https:\/\/api\.example\.com\/entry\/\?page=1&per_page=15&filter=%7B%22%24search%22%3A%22test\+query%22%7D&fields=%5B%5D$/),
+                expect.any(Object)
+            );
+            expect(result).toEqual(mockResults);
+        });
+    });
+
+    describe('getImageUrl', () => {
+        test('should return correct image URL without transformations', () => {
+            const imageUrl = flatlayer.getImageUrl('test-image-id');
+            expect(imageUrl).toBe('https://api.example.com/image/test-image-id');
+        });
+
+        test('should handle numeric image IDs', () => {
+            const imageUrl = flatlayer.getImageUrl(12345, { width: 300, height: 200 });
+            expect(imageUrl).toBe('https://api.example.com/image/12345?w=300&h=200');
+        });
+    });
+
+    describe('createImage', () => {
+        test('should create a FlatlayerImage instance with custom parameters', () => {
+            const imageData = { id: 'test-image-id', dimensions: { width: 800, height: 600 } };
+            const defaultTransforms = { q: 90 };
+            const breakpoints = { sm: 500, md: 700, lg: 900 };
+            const customImageEndpoint = 'https://custom-images.example.com';
+
+            const flatlayerImage = flatlayer.createImage(imageData, defaultTransforms, breakpoints, customImageEndpoint);
+
+            expect(flatlayerImage).toBeInstanceOf(FlatlayerImage);
+            expect(flatlayerImage.imageData).toEqual(imageData);
+            expect(flatlayerImage.defaultTransforms).toEqual(defaultTransforms);
+            expect(flatlayerImage.breakpoints).toEqual(breakpoints);
+            expect(flatlayerImage.imageEndpoint).toBe(customImageEndpoint);
+        });
+    });
+
+    describe('getResponsiveImageAttributes', () => {
+        test('should generate responsive image attributes with custom options', () => {
+            const imageData = { id: 'test-image-id', dimensions: { width: 800, height: 600 } };
+            const sizes = ['100vw', 'md:50vw'];
+            const options = {
+                displaySize: [400, 300],
+                breakpoints: { sm: 500, md: 700, lg: 900 },
+                defaultImageParams: { q: 90 },
+                isFluid: false
+            };
+
+            const attributes = flatlayer.getResponsiveImageAttributes(imageData, sizes, options);
+
+            expect(attributes).toHaveProperty('src');
+            expect(attributes).toHaveProperty('srcset');
+            expect(attributes).toHaveProperty('sizes');
+            expect(attributes).toHaveProperty('width', 400);
+            expect(attributes).toHaveProperty('height', 300);
+            expect(attributes.srcset).toContain('q=90');
+        });
+    });
 });

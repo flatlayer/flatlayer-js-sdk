@@ -129,95 +129,109 @@ describe('FlatlayerImage', () => {
         });
     });
 
-    describe('_request', () => {
-        test('should handle network errors', async () => {
-            fetch.mockRejectedValueOnce(new Error('Network error'));
-            await expect(flatlayer._request('https://api.example.com/test')).rejects.toThrow('Network error');
+    describe('getAlt', () => {
+        it('should return the correct alt text', () => {
+            expect(flatlayerImage.getAlt()).toBe('Test image');
+        });
+
+        it('should return an empty string if no alt text is provided', () => {
+            const imageWithoutAlt = new FlatlayerImage(baseUrl, { ...imageData, custom_properties: {} });
+            expect(imageWithoutAlt.getAlt()).toBe('');
         });
     });
 
-    describe('_buildUrl', () => {
-        test('should build URL with complex query parameters', () => {
-            const url = flatlayer._buildUrl('/test', {
-                array: [1, 2, 3],
-                object: { key: 'value' },
-                nullValue: null,
-                undefinedValue: undefined
+    describe('getMediaWidth', () => {
+        it('should return the correct width from dimensions', () => {
+            expect(flatlayerImage.getMediaWidth()).toBe(1600);
+        });
+
+        it('should handle string dimensions', () => {
+            const stringDimensionsImage = new FlatlayerImage(baseUrl, {
+                ...imageData,
+                dimensions: JSON.stringify({ width: 800, height: 600 })
             });
-            expect(url).toBe('https://api.example.com/test?array=%5B1%2C2%2C3%5D&object=%7B%22key%22%3A%22value%22%7D');
+            expect(stringDimensionsImage.getMediaWidth()).toBe(800);
+        });
+
+        it('should return 0 if dimensions are not available', () => {
+            const noDimensionsImage = new FlatlayerImage(baseUrl, { ...imageData, dimensions: undefined });
+            expect(noDimensionsImage.getMediaWidth()).toBe(0);
         });
     });
 
-    describe('search', () => {
-        test('should perform a search without specifying a type', async () => {
-            const mockResults = {
-                data: [{ id: 1, title: 'Search Result' }],
-                total: 1,
-                current_page: 1
-            };
-            fetch.mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockResults)
+    describe('generateFluidSrcset', () => {
+        it('should generate correct fluid srcset entries', () => {
+            const result = flatlayerImage.generateFluidSrcset(800, 1600, 0.75);
+
+            // Check for the presence of specific width entries
+            expect(result.some(entry => entry.match(/1600w$/))).toBe(true);
+            expect(result.some(entry => entry.match(/1440w$/))).toBe(true);
+            expect(result.some(entry => entry.match(/800w$/))).toBe(true);
+
+            // Check that there's no entry larger than 1600w
+            expect(result.every(entry => !entry.match(/(\d+)w$/) || parseInt(entry.match(/(\d+)w$/)[1]) <= 1600)).toBe(true);
+
+            // Check the format of the entries
+            result.forEach(entry => {
+                expect(entry).toMatch(/^https:\/\/api\.example\.com\/image\/test-image-id\?q=80&w=\d+&h=\d+ \d+w$/);
             });
 
-            const result = await flatlayer.search(null, 'test query');
-
-            expect(fetch).toHaveBeenCalledWith(
-                expect.stringMatching(/^https:\/\/api\.example\.com\/entry\?/),
-                expect.any(Object)
-            );
-            expect(result).toEqual(mockResults);
+            // Check that the aspect ratio is maintained (0.75)
+            result.forEach(entry => {
+                const match = entry.match(/w=(\d+)&h=(\d+)/);
+                if (match) {
+                    const width = parseInt(match[1]);
+                    const height = parseInt(match[2]);
+                    expect(height / width).toBeCloseTo(0.75, 2);
+                }
+            });
         });
     });
 
-    describe('getImageUrl', () => {
-        test('should return correct image URL without transformations', () => {
-            const imageUrl = flatlayer.getImageUrl('test-image-id');
-            expect(imageUrl).toBe('https://api.example.com/image/test-image-id');
-        });
+    describe('generateFixedSrcset', () => {
+        it('should generate correct fixed srcset entries', () => {
+            const result = flatlayerImage.generateFixedSrcset(400, 300, 1600);
 
-        test('should handle numeric image IDs', () => {
-            const imageUrl = flatlayer.getImageUrl(12345, { width: 300, height: 200 });
-            expect(imageUrl).toBe('https://api.example.com/image/12345?w=300&h=200');
+            // Check that we have exactly two entries
+            expect(result.length).toBe(2);
+
+            // Check for the presence of 400w and 800w entries
+            expect(result.some(entry => entry.match(/400w$/))).toBe(true);
+            expect(result.some(entry => entry.match(/800w$/))).toBe(true);
+
+            // Check that there's no 1600w entry
+            expect(result.every(entry => !entry.match(/1600w$/))).toBe(true);
+
+            // Check the format of the entries
+            result.forEach(entry => {
+                expect(entry).toMatch(/^https:\/\/api\.example\.com\/image\/test-image-id\?q=80&w=\d+&h=\d+ \d+w$/);
+            });
+
+            // Check that the aspect ratio is maintained (4:3)
+            result.forEach(entry => {
+                const match = entry.match(/w=(\d+)&h=(\d+)/);
+                if (match) {
+                    const width = parseInt(match[1]);
+                    const height = parseInt(match[2]);
+                    expect(height / width).toBeCloseTo(0.75, 2); // 300/400 = 0.75
+                }
+            });
+
+            // Check specific dimensions
+            expect(result[0]).toMatch(/w=400&h=300 400w$/);
+            expect(result[1]).toMatch(/w=800&h=600 800w$/);
         });
     });
 
-    describe('createImage', () => {
-        test('should create a FlatlayerImage instance with custom parameters', () => {
-            const imageData = { id: 'test-image-id', dimensions: { width: 800, height: 600 } };
-            const defaultTransforms = { q: 90 };
-            const breakpoints = { sm: 500, md: 700, lg: 900 };
-            const customImageEndpoint = 'https://custom-images.example.com';
-
-            const flatlayerImage = flatlayer.createImage(imageData, defaultTransforms, breakpoints, customImageEndpoint);
-
-            expect(flatlayerImage).toBeInstanceOf(FlatlayerImage);
-            expect(flatlayerImage.imageData).toEqual(imageData);
-            expect(flatlayerImage.defaultTransforms).toEqual(defaultTransforms);
-            expect(flatlayerImage.breakpoints).toEqual(breakpoints);
-            expect(flatlayerImage.imageEndpoint).toBe(customImageEndpoint);
+    describe('getUrl', () => {
+        it('should generate correct URL with transforms', () => {
+            const url = flatlayerImage.getUrl({ w: 300, h: 200, q: 90 });
+            expect(url).toBe('https://api.example.com/image/test-image-id?w=300&h=200&q=90');
         });
-    });
 
-    describe('getResponsiveImageAttributes', () => {
-        test('should generate responsive image attributes with custom options', () => {
-            const imageData = { id: 'test-image-id', dimensions: { width: 800, height: 600 } };
-            const sizes = ['100vw', 'md:50vw'];
-            const options = {
-                displaySize: [400, 300],
-                breakpoints: { sm: 500, md: 700, lg: 900 },
-                defaultImageParams: { q: 90 },
-                isFluid: false
-            };
-
-            const attributes = flatlayer.getResponsiveImageAttributes(imageData, sizes, options);
-
-            expect(attributes).toHaveProperty('src');
-            expect(attributes).toHaveProperty('srcset');
-            expect(attributes).toHaveProperty('sizes');
-            expect(attributes).toHaveProperty('width', 400);
-            expect(attributes).toHaveProperty('height', 300);
-            expect(attributes.srcset).toContain('q=90');
+        it('should generate correct URL without transforms', () => {
+            const url = flatlayerImage.getUrl();
+            expect(url).toBe('https://api.example.com/image/test-image-id');
         });
     });
 });
