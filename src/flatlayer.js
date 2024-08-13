@@ -4,12 +4,13 @@ import FlatlayerImage from './flatlayer-image.js';
  * Flatlayer class
  * A JavaScript SDK for interacting with the Flatlayer CMS API.
  * Focused on content retrieval, searching, and image handling.
+ * @class
  */
 class Flatlayer {
     /**
      * Create a new Flatlayer instance.
      * @param {string} baseUrl - The base URL of the Flatlayer CMS API.
-     * @param {string} [imageEndpoint] - The base URL for image endpoints. If not provided, it defaults to `${baseUrl}/image`.
+     * @param {string} [imageEndpoint=null] - The base URL for image endpoints. If not provided, it defaults to `${baseUrl}/image`.
      */
     constructor(baseUrl, imageEndpoint = null) {
         this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
@@ -57,11 +58,11 @@ class Flatlayer {
     /**
      * Get a list of entries.
      * @param {string} type - The type of entry to retrieve (e.g., 'post', 'page').
-     * @param {Object} options - Options for the request.
+     * @param {Object} [options] - Options for the request.
      * @param {number} [options.page=1] - The page number to retrieve.
      * @param {number} [options.perPage=15] - The number of entries per page.
      * @param {Object} [options.filter={}] - Filters to apply to the query.
-     * @param {Array} [options.fields=[]] - Fields to include in the response.
+     * @param {Array<string>} [options.fields=[]] - Fields to include in the response.
      * @param {string} [options.search=null] - Search query to apply.
      * @returns {Promise<Object>} The paginated list of entries.
      */
@@ -90,7 +91,7 @@ class Flatlayer {
      * Get a single entry by its slug.
      * @param {string} type - The type of entry to retrieve.
      * @param {string} slug - The slug of the entry.
-     * @param {Array} [fields=[]] - Fields to include in the response.
+     * @param {Array<string>} [fields=[]] - Fields to include in the response.
      * @returns {Promise<Object>} The requested entry.
      */
     async getEntry(type, slug, fields = []) {
@@ -100,13 +101,13 @@ class Flatlayer {
 
     /**
      * Perform a search across entry types or within a specific type.
-     * @param {string} type - The entry type to search within.
+     * @param {string|null} type - The entry type to search within, or null to search all types.
      * @param {string} query - The search query.
-     * @param {Object} options - Options for the search request.
+     * @param {Object} [options] - Options for the search request.
      * @param {number} [options.page=1] - The page number to retrieve.
      * @param {number} [options.perPage=15] - The number of entries per page.
      * @param {Object} [options.filter={}] - Additional filters to apply.
-     * @param {Array} [options.fields=[]] - Fields to include in the response.
+     * @param {Array<string>} [options.fields=[]] - Fields to include in the response.
      * @returns {Promise<Object>} The search results.
      */
     async search(type, query, options = {}) {
@@ -131,7 +132,7 @@ class Flatlayer {
     /**
      * Get the URL for an image with optional transformations.
      * @param {string|number} id - The ID of the image.
-     * @param {Object} options - Image transformation options.
+     * @param {Object} [options] - Image transformation options.
      * @param {number} [options.width] - The desired width of the image.
      * @param {number} [options.height] - The desired height of the image.
      * @param {number} [options.quality] - The quality of the image (1-100).
@@ -176,11 +177,12 @@ class Flatlayer {
     /**
      * Generate responsive image attributes for use in an <img> tag.
      * @param {Object} image - The image object from the API.
-     * @param {Array} sizes - An array of size descriptors (e.g., ['100vw', 'md:50vw']).
-     * @param {Object} options - Additional options for image generation.
+     * @param {Array<string>} sizes - An array of size descriptors (e.g., ['100vw', 'md:50vw']).
+     * @param {Object} [options] - Additional options for image generation.
      * @param {Object} [options.breakpoints] - Custom breakpoints for responsive sizes.
      * @param {Object} [options.defaultImageParams] - Default parameters for image URLs.
-     * @param {Array} [options.displaySize] - The intended display size [width, height].
+     * @param {Array<number>} [options.displaySize] - The intended display size [width, height].
+     * @param {boolean} [options.isFluid=true] - Whether to use fluid sizing.
      * @returns {Object} An object with responsive image attributes.
      */
     getResponsiveImageAttributes(image, sizes, options = {}) {

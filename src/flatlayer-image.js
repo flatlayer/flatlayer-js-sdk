@@ -1,6 +1,7 @@
 /**
  * FlatlayerImage class
  * Handles the generation of responsive image attributes and URLs.
+ * @class
  */
 class FlatlayerImage {
     static DECREMENT = 0.9; // 10% decrement
@@ -13,7 +14,7 @@ class FlatlayerImage {
      * @param {Object} imageData - The image data object from the API.
      * @param {Object} [defaultTransforms={}] - Default transformation parameters.
      * @param {Object} [breakpoints={}] - Custom breakpoints for responsive sizes.
-     * @param {string} [imageEndpoint=null] - Custom image endpoint URL.
+     * @param {string|null} [imageEndpoint=null] - Custom image endpoint URL.
      */
     constructor(baseUrl, imageData, defaultTransforms = {}, breakpoints = {}, imageEndpoint = null) {
         this.baseUrl = baseUrl;
@@ -31,10 +32,10 @@ class FlatlayerImage {
 
     /**
      * Generate an img tag with responsive attributes.
-     * @param {Array} sizes - An array of size descriptors.
+     * @param {Array<string>} sizes - An array of size descriptors.
      * @param {Object} [attributes={}] - Additional HTML attributes for the img tag.
      * @param {boolean} [isFluid=true] - Whether to use fluid sizing.
-     * @param {Array} [displaySize=null] - The intended display size [width, height].
+     * @param {Array<number>|null} [displaySize=null] - The intended display size [width, height].
      * @returns {Object} An object with responsive image attributes.
      */
     generateImgAttributes(sizes, attributes = {}, isFluid = true, displaySize = null) {
@@ -58,12 +59,12 @@ class FlatlayerImage {
      * @returns {string} The alt text.
      */
     getAlt() {
-        return this.imageData.custom_properties?.alt || '';
+        return this.imageData.meta?.alt || '';
     }
 
     /**
      * Parse size descriptors into a structured format.
-     * @param {Array} sizes - An array of size descriptors.
+     * @param {Array<string>} sizes - An array of size descriptors.
      * @returns {Object} Parsed sizes object.
      */
     parseSizes(sizes) {
@@ -108,7 +109,7 @@ class FlatlayerImage {
     /**
      * Generate the srcset attribute.
      * @param {boolean} isFluid - Whether to use fluid sizing.
-     * @param {Array} [displaySize=null] - The intended display size [width, height].
+     * @param {Array<number>|null} [displaySize=null] - The intended display size [width, height].
      * @returns {string} The srcset attribute value.
      */
     generateSrcset(isFluid, displaySize = null) {
@@ -137,8 +138,8 @@ class FlatlayerImage {
      * Generate srcset entries for fluid sizing.
      * @param {number} baseWidth - The base width for fluid sizing.
      * @param {number} maxWidth - The maximum allowed width.
-     * @param {number} [aspectRatio=null] - The aspect ratio to maintain.
-     * @returns {Array} Array of srcset entries.
+     * @param {number|null} [aspectRatio=null] - The aspect ratio to maintain.
+     * @returns {Array<string>} Array of srcset entries.
      */
     generateFluidSrcset(baseWidth, maxWidth, aspectRatio = null) {
         const srcset = [];
@@ -162,7 +163,7 @@ class FlatlayerImage {
      * @param {number} baseWidth - The base width for fixed sizing.
      * @param {number} baseHeight - The base height for fixed sizing.
      * @param {number} maxWidth - The maximum allowed width.
-     * @returns {Array} Array of srcset entries.
+     * @returns {Array<string>} Array of srcset entries.
      */
     generateFixedSrcset(baseWidth, baseHeight, maxWidth) {
         const srcset = [this.formatSrcsetEntry(baseWidth, baseHeight)];
@@ -191,7 +192,7 @@ class FlatlayerImage {
     /**
      * Format a single srcset entry.
      * @param {number} width - The width for the srcset entry.
-     * @param {number} [height=null] - The height for the srcset entry.
+     * @param {number|null} [height=null] - The height for the srcset entry.
      * @returns {string} A formatted srcset entry.
      */
     formatSrcsetEntry(width, height = null) {
@@ -218,6 +219,10 @@ class FlatlayerImage {
     /**
      * Format a single size for the sizes attribute.
      * @param {Object} size - The size object to format.
+     * @param {string} size.type - The type of size ('px', 'vw', or 'calc').
+     * @param {number} size.value - The numeric value for 'px' or 'vw' types.
+     * @param {number} [size.vw] - The viewport width percentage for 'calc' type.
+     * @param {number} [size.px] - The pixel value to subtract for 'calc' type.
      * @returns {string} A formatted size string.
      * @throws {Error} If the size type is invalid.
      */
@@ -232,7 +237,7 @@ class FlatlayerImage {
 
     /**
      * Get the base transforms for the image.
-     * @param {Array} [displaySize=null] - The intended display size [width, height].
+     * @param {Array<number>|null} [displaySize=null] - The intended display size [width, height].
      * @returns {Object} The base transforms object.
      */
     getBaseTransforms(displaySize) {

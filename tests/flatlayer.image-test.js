@@ -6,7 +6,7 @@ describe('FlatlayerImage', () => {
     const imageData = {
         id: 'test-image-id',
         dimensions: { width: 1600, height: 900 },
-        custom_properties: { alt: 'Test image' }
+        meta: { alt: 'Test image' }
     };
 
     beforeEach(() => {
@@ -135,7 +135,7 @@ describe('FlatlayerImage', () => {
         });
 
         it('should return an empty string if no alt text is provided', () => {
-            const imageWithoutAlt = new FlatlayerImage(baseUrl, { ...imageData, custom_properties: {} });
+            const imageWithoutAlt = new FlatlayerImage(baseUrl, { ...imageData, meta: {} });
             expect(imageWithoutAlt.getAlt()).toBe('');
         });
     });
