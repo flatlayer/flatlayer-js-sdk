@@ -14,7 +14,7 @@
       "import": "./dist/flatlayer.mjs",
       "require": "./dist/flatlayer.js"
     },
-    "./svelte": "./src/svelte/FlatlayerImage.svelte"
+    "./svelte": "./src/svelte/ResponsiveImage.svelte"
   },
   "scripts": {
     "build": "rollup -c",
