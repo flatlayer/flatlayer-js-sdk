@@ -81,6 +81,14 @@ Retrieves a single entry by its slug.
 - `slug`: The slug of the entry.
 - `fields`: (Optional) Array of fields to include in the response.
 
+#### getBatchEntries(type: string, slugs: Array<string>, fields?: Array<string>): Promise<Object>
+
+Retrieves multiple entries by their slugs.
+
+- `type`: The type of entries to retrieve.
+- `slugs`: An array of slugs to retrieve.
+- `fields`: (Optional) Array of fields to include in the response.
+
 ### Search
 
 #### search(query: string, type?: string, options?: Object): Promise<Object>
@@ -138,24 +146,34 @@ flatlayer.getEntryList('post', {
   filter: { published: true },
   fields: ['title', 'excerpt', 'author', 'published_at']
 })
-        .then(response => {
-          console.log('Blog posts:', response.data);
-          console.log('Total posts:', response.total);
-          console.log('Current page:', response.current_page);
-        })
-        .catch(error => console.error('Error fetching blog posts:', error));
+  .then(response => {
+    console.log('Blog posts:', response.data);
+    console.log('Total posts:', response.total);
+    console.log('Current page:', response.current_page);
+  })
+  .catch(error => console.error('Error fetching blog posts:', error));
 ```
 
 #### Retrieving a single page by slug
 
 ```javascript
 flatlayer.getEntry('page', 'about-us', ['title', 'content', 'meta'])
-        .then(page => {
-          console.log('Page title:', page.title);
-          console.log('Page content:', page.content);
-          console.log('Page meta:', page.meta);
-        })
-        .catch(error => console.error('Error fetching page:', error));
+  .then(page => {
+    console.log('Page title:', page.title);
+    console.log('Page content:', page.content);
+    console.log('Page meta:', page.meta);
+  })
+  .catch(error => console.error('Error fetching page:', error));
+```
+
+#### Retrieving multiple entries by slug
+
+```javascript
+flatlayer.getBatchEntries('post', ['first-post', 'second-post'], ['title', 'content', 'author'])
+  .then(response => {
+    console.log('Retrieved posts:', response.data);
+  })
+  .catch(error => console.error('Error fetching posts:', error));
 ```
 
 #### Performing a search
@@ -166,11 +184,11 @@ flatlayer.search('JavaScript', 'post', {
   perPage: 20,
   fields: ['title', 'excerpt', 'author']
 })
-        .then(results => {
-          console.log('Search results:', results.data);
-          console.log('Total results:', results.total);
-        })
-        .catch(error => console.error('Error performing search:', error));
+  .then(results => {
+    console.log('Search results:', results.data);
+    console.log('Total results:', results.total);
+  })
+  .catch(error => console.error('Error performing search:', error));
 ```
 
 ### Using FlatlayerImage
@@ -247,8 +265,8 @@ flatlayer.getEntryList('product', {
     ]
   }
 })
-        .then(response => console.log('Filtered products:', response.data))
-        .catch(error => console.error('Error fetching products:', error));
+  .then(response => console.log('Filtered products:', response.data))
+  .catch(error => console.error('Error fetching products:', error));
 ```
 
 ### Pagination
@@ -270,8 +288,8 @@ async function getAllPosts() {
 }
 
 getAllPosts()
-        .then(posts => console.log('All posts:', posts))
-        .catch(error => console.error('Error fetching all posts:', error));
+  .then(posts => console.log('All posts:', posts))
+  .catch(error => console.error('Error fetching all posts:', error));
 ```
 
 ## Error Handling
@@ -280,14 +298,18 @@ The SDK uses native Promises, so you can use `.catch()` to handle errors:
 
 ```javascript
 flatlayer.getEntry('post', 'non-existent-post')
-        .then(post => console.log('Post:', post))
-        .catch(error => {
-          if (error.message.includes('404')) {
-            console.error('Post not found');
-          } else {
-            console.error('An error occurred:', error.message);
-          }
-        });
+  .then(post => console.log('Post:', post))
+  .catch(error => {
+    if (error.message.includes('404')) {
+      console.error('Post not found');
+    } else if (error.message.includes('401')) {
+      console.error('Authentication error. Please check your API credentials.');
+    } else if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+      console.error('Network error. Please check your internet connection.');
+    } else {
+      console.error('An error occurred:', error.message);
+    }
+  });
 ```
 
 ## TypeScript Support

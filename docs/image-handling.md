@@ -8,9 +8,9 @@ To work with images, first create a `FlatlayerImage` instance:
 
 ```javascript
 const imageData = {
-  id: '12345',
-  dimensions: { width: 1200, height: 800 },
-  meta: { alt: 'A beautiful landscape' }
+    id: '12345',
+    dimensions: { width: 1200, height: 800 },
+    meta: { alt: 'A beautiful landscape' }
 };
 
 const flatlayerImage = flatlayer.createImage(imageData, { quality: 80 });
@@ -77,4 +77,66 @@ const imageUrl = flatlayer.getImageUrl('image-id', {
 console.log('Transformed image URL:', imageUrl);
 ```
 
-These image handling features allow you to easily work with responsive and optimized images in your Flatlayer-powered applications.
+### FlatlayerImage Class Methods
+
+The `FlatlayerImage` class includes several methods for handling responsive image sizes. Here's a detailed look at some key methods:
+
+#### parseSizes(sizes: Array<string>): Object
+
+This method parses an array of size descriptors into a structured format.
+
+```javascript
+const sizes = ['100vw', 'md:50vw', 'lg:33vw'];
+const parsedSizes = flatlayerImage.parseSizes(sizes);
+console.log(parsedSizes);
+// Output:
+// {
+//   0: { type: 'vw', value: 100 },
+//   768: { type: 'vw', value: 50 },
+//   1024: { type: 'vw', value: 33 }
+// }
+```
+
+#### parseSize(size: string): Object
+
+This method parses a single size descriptor.
+
+```javascript
+console.log(flatlayerImage.parseSize('100vw'));
+// Output: { type: 'vw', value: 100 }
+
+console.log(flatlayerImage.parseSize('500px'));
+// Output: { type: 'px', value: 500 }
+
+console.log(flatlayerImage.parseSize('calc(100vw - 20px)'));
+// Output: { type: 'calc', vw: 100, px: 20 }
+```
+
+#### formatSize(size: Object): string
+
+This method formats a size object into a string representation.
+
+```javascript
+console.log(flatlayerImage.formatSize({ type: 'vw', value: 100 }));
+// Output: '100vw'
+
+console.log(flatlayerImage.formatSize({ type: 'px', value: 500 }));
+// Output: '500px'
+
+console.log(flatlayerImage.formatSize({ type: 'calc', vw: 100, px: 20 }));
+// Output: 'calc(100vw - 20px)'
+```
+
+These methods are used internally by the `generateImgAttributes` method to handle responsive image sizing, but they can also be useful for advanced customization scenarios.
+
+For example, you could use these methods to create custom size parsing logic:
+
+```javascript
+const customSizes = ['small:300px', 'medium:50vw', 'large:calc(100vw - 40px)'];
+const parsedSizes = customSizes.map(size => {
+  const [breakpoint, value] = size.split(':');
+  return { breakpoint, size: flatlayerImage.parseSize(value) };
+});
+```
+
+These image handling features allow you to easily work with responsive and optimized images in your Flatlayer-powered applications, providing fine-grained control over image sizing and responsiveness.

@@ -38,6 +38,8 @@ import { flatlayer } from './your-flatlayer-instance';
 - `attributes` (optional): Additional HTML attributes for the img tag.
 - `isFluid` (optional): Use fluid sizing. Default: `true`.
 - `displaySize` (optional): Intended display size as `[width, height]`.
+- `lazyLoad` (optional): Enable lazy loading of images. Default: `true`.
+- `blurRadius` (optional): Blur radius for the image placeholder. Default: `40`.
 
 ## Advanced Example
 
@@ -73,6 +75,8 @@ const customBreakpoints = {
     defaultTransforms={{ quality: 80, format: 'webp' }}
     breakpoints={customBreakpoints}
     isFluid={true}
+    lazyLoad={true}
+    blurRadius={20}
   />
 {/if}
 ```
@@ -83,12 +87,14 @@ This example fetches an image entry from Flatlayer and renders it as a responsiv
 - Size descriptors for different screen sizes
 - Default image transformations (quality and format)
 - Additional HTML attributes
+- Lazy loading
+- Custom blur radius for the placeholder
 
 ## Performance Optimizations
 
-1. **Lazy Loading**: The component uses native lazy loading. Images off-screen won't be loaded until needed.
+1. **Lazy Loading**: The component uses native lazy loading by default (`lazyLoad={true}`). Images off-screen won't be loaded until needed. You can disable this by setting `lazyLoad={false}`.
 
-2. **Placeholder**: A low-resolution placeholder (using `thumbhash`) is displayed while the full image loads, improving perceived performance.
+2. **Placeholder**: A low-resolution placeholder (using `thumbhash`) is displayed while the full image loads, improving perceived performance. The `blurRadius` prop allows you to control the blur effect of this placeholder.
 
 3. **Responsive Sizing**: The `sizes` attribute ensures the browser downloads appropriately sized images for the user's device and viewport.
 
@@ -96,7 +102,35 @@ This example fetches an image entry from Flatlayer and renders it as a responsiv
 
 ## TypeScript Support
 
-The component and its props are fully typed. In a TypeScript Svelte file, you'll get type checking and autocompletion for the component props.
+While the ResponsiveImage component isn't explicitly typed for TypeScript, you can still use it in TypeScript-based Svelte projects. However, you may need to provide your own type definitions for full TypeScript support.
+
+To use the component with TypeScript, you might need to create a declaration file (e.g., `flatlayer-sdk.d.ts`) with a basic type definition:
+
+```typescript
+declare module 'flatlayer-sdk/svelte' {
+  import { SvelteComponentTyped } from 'svelte';
+
+  export interface ResponsiveImageProps {
+    baseUrl: string;
+    imageData: any; // You might want to define a more specific type for imageData
+    sizes?: string[];
+    defaultTransforms?: Record<string, any>;
+    breakpoints?: Record<string, number>;
+    imageEndpoint?: string;
+    attributes?: Record<string, any>;
+    isFluid?: boolean;
+    displaySize?: [number, number];
+    lazyLoad?: boolean;
+    blurRadius?: number;
+  }
+
+  export default class ResponsiveImage extends SvelteComponentTyped<ResponsiveImageProps> {}
+}
+```
+
+This approach allows for basic type checking and autocompletion in TypeScript Svelte files. However, please note that this is a minimal type definition and may not cover all aspects of the component's functionality.
+
+If you frequently use TypeScript in your projects, consider contributing TypeScript definitions to the Flatlayer SDK to improve its TypeScript support.
 
 ## Best Practices
 
@@ -104,5 +138,7 @@ The component and its props are fully typed. In a TypeScript Svelte file, you'll
 2. Use the `sizes` attribute accurately to reflect your layout.
 3. Leverage `defaultTransforms` to optimize image quality and format globally.
 4. Consider using `displaySize` for critical images to prevent layout shifts.
+5. Adjust the `blurRadius` to balance between a smooth loading experience and initial image clarity.
+6. Use `lazyLoad={false}` for above-the-fold images that need to load immediately.
 
 By utilizing the ResponsiveImage component, you can efficiently manage responsive images in your Svelte application while leveraging the power of the Flatlayer CMS.
