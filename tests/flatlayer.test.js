@@ -244,4 +244,68 @@ describe('Flatlayer SDK', () => {
             expect(attributes.srcset).toContain('q=90');
         });
     });
+
+    describe('getBatchEntries', () => {
+        test('should fetch multiple entries by slugs', async () => {
+            const mockEntries = {
+                data: [
+                    { id: 1, title: 'First Post', slug: 'first-post' },
+                    { id: 2, title: 'Second Post', slug: 'second-post' }
+                ]
+            };
+            fetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockEntries)
+            });
+
+            const result = await flatlayer.getBatchEntries('post', ['first-post', 'second-post'], ['id', 'title', 'slug']);
+
+            expect(fetch).toHaveBeenCalledWith(
+                'https://api.example.com/entry/batch/post?slugs=first-post%2Csecond-post&fields=%5B%22id%22%2C%22title%22%2C%22slug%22%5D',
+                expect.any(Object)
+            );
+            expect(result).toEqual(mockEntries);
+        });
+
+        test('should handle empty slugs array', async () => {
+            await expect(flatlayer.getBatchEntries('post', [])).rejects.toThrow('No valid slugs provided');
+        });
+
+        test('should handle null or undefined slugs', async () => {
+            await expect(flatlayer.getBatchEntries('post', null)).rejects.toThrow('No valid slugs provided');
+            await expect(flatlayer.getBatchEntries('post', undefined)).rejects.toThrow('No valid slugs provided');
+        });
+
+        test('should handle response with missing entries', async () => {
+            const mockResponse = {
+                data: [
+                    { id: 1, title: 'First Post', slug: 'first-post' }
+                ]
+            };
+            fetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockResponse)
+            });
+
+            const result = await flatlayer.getBatchEntries('post', ['first-post', 'non-existent-post']);
+
+            expect(result.data).toHaveLength(1);
+            expect(result.data[0].slug).toBe('first-post');
+        });
+
+        test('should handle network errors', async () => {
+            fetch.mockRejectedValueOnce(new Error('Network error'));
+
+            await expect(flatlayer.getBatchEntries('post', ['test-post'])).rejects.toThrow('Network error');
+        });
+
+        test('should handle API errors', async () => {
+            fetch.mockResolvedValueOnce({
+                ok: false,
+                json: () => Promise.resolve({ error: 'API Error' })
+            });
+
+            await expect(flatlayer.getBatchEntries('post', ['test-post'])).rejects.toThrow('API Error');
+        });
+    });
 });

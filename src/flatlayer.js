@@ -100,6 +100,25 @@ class Flatlayer {
     }
 
     /**
+     * Get multiple entries by their slugs.
+     * @param {string} type - The type of entries to retrieve.
+     * @param {Array<string>} slugs - An array of slugs to retrieve.
+     * @param {Array<string>} [fields=[]] - Fields to include in the response.
+     * @returns {Promise<Object>} The requested entries.
+     */
+    async getBatchEntries(type, slugs, fields = []) {
+        if (!slugs || slugs.length === 0) {
+            throw new Error('No valid slugs provided');
+        }
+        const params = {
+            slugs: slugs.join(','),
+            fields: fields
+        };
+        const url = this._buildUrl(`/entry/batch/${type}`, params);
+        return this._request(url);
+    }
+
+    /**
      * Perform a search across entry types or within a specific type.
      * @param {string|null} type - The entry type to search within, or null to search all types.
      * @param {string} query - The search query.
