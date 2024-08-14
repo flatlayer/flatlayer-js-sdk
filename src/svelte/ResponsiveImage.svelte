@@ -1,6 +1,6 @@
 <script>
     import { onMount } from 'svelte';
-    import { decode } from 'thumbhash';
+    import { thumbHashToDataURL } from 'thumbhash';
     import FlatlayerImage from '../flatlayer-image';
 
     export let baseUrl;
@@ -19,48 +19,53 @@
     let imgAttributes;
     let thumbhashUrl = '';
     let imageLoaded = false;
-    let animate = false;
+    let shouldAnimate = false;
+    let imageElement;
 
     $: {
         flatlayerImage = new FlatlayerImage(baseUrl, imageData, defaultTransforms, breakpoints, imageEndpoint);
         imgAttributes = flatlayerImage.generateImgAttributes(sizes, {
             ...attributes,
             loading: lazyLoad ? 'lazy' : 'eager',
-            onload: () => handleImageLoad()
         }, isFluid, displaySize);
     }
 
     onMount(() => {
         if (imageData.thumbhash) {
-            const rgba = decode(imageData.thumbhash);
-            const imageData = new ImageData(rgba, 32, 32);
-            const canvas = document.createElement('canvas');
-            canvas.width = 32;
-            canvas.height = 32;
-            const ctx = canvas.getContext('2d');
-            ctx.putImageData(imageData, 0, 0);
-            thumbhashUrl = canvas.toDataURL();
+            const thumbhashBytes = atob(imageData.thumbhash).split('').map(c => c.charCodeAt(0));
+            thumbhashUrl = thumbHashToDataURL(new Uint8Array(thumbhashBytes));
         }
 
-        // Give a short leeway for the image to load from memory
-        setTimeout(() => {
-            if (!imageLoaded) {
-                animate = true;
-            }
-        }, 75);
-    });
+        // Check if the image is already cached
+        if (imageElement.complete && false) {
+            imageLoaded = true;
+        } else {
+            // If not cached, set up the load event and timeout
+            const loadTimeout = setTimeout(() => {
+                if (!imageLoaded) {
+                    shouldAnimate = true;
+                }
+            }, 75);
 
-    function handleImageLoad() {
-        imageLoaded = true;
-    }
+            imageElement.onload = () => {
+                clearTimeout(loadTimeout);
+                imageLoaded = true;
+                if (shouldAnimate) {
+                    // Only animate if the timeout has already passed
+                    imageElement.classList.add('animate');
+                }
+            };
+        }
+    });
 </script>
 
-<div class="flatlayer-image-wrapper" style="--blur-radius: {blurRadius}px; background-image: url({thumbhashUrl}); background-size: cover;">
+<div class="flatlayer-image-wrapper {$$restProps.class || ''}"
+     style="--blur-radius: {blurRadius}px; background-image: url({thumbhashUrl}); background-size: cover;">
     <img
             {...imgAttributes}
             alt={flatlayerImage.getAlt()}
-            class:animate
             class:imageLoaded
+            bind:this={imageElement}
     />
 </div>
 
@@ -68,7 +73,9 @@
     .flatlayer-image-wrapper {
         position: relative;
         overflow: hidden;
-        background-color: #f0f0f0; /* Light grey placeholder */
+        background-position: center center;
+        background-size: cover;
+        background-color: #f0f0f0;
     }
 
     img {
@@ -77,12 +84,6 @@
         width: 100%;
         height: auto;
         display: block;
-        opacity: 0;
-        transition: opacity 0.3s ease-in;
-    }
-
-    .imageLoaded {
-        opacity: 1;
     }
 
     .animate {
