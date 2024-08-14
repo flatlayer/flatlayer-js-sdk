@@ -28,6 +28,7 @@ class FlatlayerImage {
             '2xl': 1536,
         };
         this.imageEndpoint = imageEndpoint || `${this.baseUrl}/image`;
+        this.originalExtension = imageData.extension;
     }
 
     /**
@@ -59,7 +60,7 @@ class FlatlayerImage {
      * @returns {string} The alt text.
      */
     getAlt() {
-        return this.imageData.meta?.alt || '';
+        return this.imageData.meta?.alt || this.imageData.filename.split('.')[0] || 'Image';
     }
 
     /**
@@ -182,11 +183,7 @@ class FlatlayerImage {
      * @returns {number} The width of the media.
      */
     getMediaWidth() {
-        const dimensions = typeof this.imageData.dimensions === 'string'
-            ? JSON.parse(this.imageData.dimensions)
-            : this.imageData.dimensions;
-
-        return dimensions?.width || 0;
+        return this.imageData.width || 0;
     }
 
     /**
@@ -250,8 +247,9 @@ class FlatlayerImage {
      * @returns {string} The URL for the transformed image.
      */
     getUrl(transforms = {}) {
-        const queryParams = new URLSearchParams(transforms).toString();
-        return `${this.imageEndpoint}/${this.imageData.id}${queryParams ? `?${queryParams}` : ''}`;
+        const allTransforms = { ...this.defaultTransforms, ...transforms };
+        const queryParams = new URLSearchParams(allTransforms).toString();
+        return `${this.imageEndpoint}/${this.imageData.id}.${this.originalExtension}${queryParams ? `?${queryParams}` : ''}`;
     }
 }
 
