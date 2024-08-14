@@ -17,10 +17,18 @@
 
     let flatlayerImage;
     let imgAttributes;
-    let thumbhashUrl = '';
     let imageLoaded = false;
     let shouldAnimate = false;
+    let willAnimate = false;
     let imageElement;
+
+    function getThumbhashUrl(thumbhash) {
+        if (!thumbhash) return '';
+        const thumbhashBytes = atob(thumbhash).split('').map(c => c.charCodeAt(0));
+        return thumbHashToDataURL(new Uint8Array(thumbhashBytes));
+    }
+
+    $: thumbhashUrl = getThumbhashUrl(imageData.thumbhash);
 
     $: {
         flatlayerImage = new FlatlayerImage(baseUrl, imageData, defaultTransforms, breakpoints, imageEndpoint);
@@ -31,19 +39,13 @@
     }
 
     onMount(() => {
-        if (imageData.thumbhash) {
-            const thumbhashBytes = atob(imageData.thumbhash).split('').map(c => c.charCodeAt(0));
-            thumbhashUrl = thumbHashToDataURL(new Uint8Array(thumbhashBytes));
-        }
-
-        // Check if the image is already cached
-        if (imageElement.complete && false) {
+        if (imageElement.complete) {
             imageLoaded = true;
         } else {
-            // If not cached, set up the load event and timeout
             const loadTimeout = setTimeout(() => {
                 if (!imageLoaded) {
                     shouldAnimate = true;
+                    willAnimate = true;
                 }
             }, 75);
 
@@ -51,8 +53,7 @@
                 clearTimeout(loadTimeout);
                 imageLoaded = true;
                 if (shouldAnimate) {
-                    // Only animate if the timeout has already passed
-                    imageElement.classList.add('animate');
+                    willAnimate = false;
                 }
             };
         }
@@ -65,6 +66,8 @@
             {...imgAttributes}
             alt={flatlayerImage.getAlt()}
             class:imageLoaded
+            class:will-animate={willAnimate}
+            class:animate={imageLoaded && shouldAnimate}
             bind:this={imageElement}
     />
 </div>
@@ -84,6 +87,10 @@
         width: 100%;
         height: auto;
         display: block;
+    }
+
+    .will-animate {
+        opacity: 0;
     }
 
     .animate {
