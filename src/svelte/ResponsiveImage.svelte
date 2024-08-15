@@ -1,19 +1,24 @@
 <script>
-    import { onMount } from 'svelte';
-    import { thumbHashToDataURL } from 'thumbhash';
     import FlatlayerImage from '../flatlayer-image';
+    import {thumbHashToDataURL} from 'thumbhash';
+    import {onMount} from 'svelte';
+    import {PUBLIC_FLATLAYER_ENDPOINT} from "$env/static/public";
 
-    export let baseUrl;
-    export let imageData;
+    // Props for original usage
+    export let baseUrl = PUBLIC_FLATLAYER_ENDPOINT;
+    export let imageData = undefined;
     export let defaultTransforms = {};
     export let breakpoints = {};
     export let imageEndpoint = null;
     export let sizes = ['100vw'];
     export let attributes = {};
     export let isFluid = true;
-    export let displaySize = null;
+    export let displaySize = false;
     export let lazyLoad = true;
     export let blurRadius = 40;
+
+    export let alt = undefined;
+    export let title = undefined;
 
     let flatlayerImage;
     let imgAttributes;
@@ -22,22 +27,43 @@
     let willAnimate = false;
     let imageElement;
 
+    $: {
+        if (imageData) {
+            flatlayerImage = new FlatlayerImage(
+                baseUrl,
+                imageData,
+                defaultTransforms,
+                breakpoints,
+                imageEndpoint
+            );
+        }
+    }
+
+    $: if (flatlayerImage) {
+        imgAttributes = flatlayerImage.generateImgAttributes(
+            sizes,
+            {
+                ...attributes,
+                loading: lazyLoad ? 'lazy' : 'eager',
+            },
+            isFluid,
+            displaySize
+        );
+    }
+
     function getThumbhashUrl(thumbhash) {
         if (!thumbhash) return '';
         const thumbhashBytes = atob(thumbhash).split('').map(c => c.charCodeAt(0));
         return thumbHashToDataURL(new Uint8Array(thumbhashBytes));
     }
 
-    $: thumbhashUrl = getThumbhashUrl(imageData.thumbhash);
-
-    $: {
-        flatlayerImage = new FlatlayerImage(baseUrl, imageData, defaultTransforms, breakpoints, imageEndpoint);
-        imgAttributes = flatlayerImage.generateImgAttributes(sizes, {
-            ...attributes,
-            loading: lazyLoad ? 'lazy' : 'eager',
-        }, isFluid, displaySize);
+    // Update the Thumbhash URL
+    let thumbhashUrl = '';
+    $: if (imageData && imageData.thumbhash) {
+        thumbhashUrl = getThumbhashUrl(imageData.thumbhash);
+    } else {
+        thumbhashUrl = '';
     }
-
     onMount(() => {
         if (imageElement.complete) {
             imageLoaded = true;
@@ -60,17 +86,20 @@
     });
 </script>
 
-<div class="flatlayer-image-wrapper {$$restProps.class || ''}"
-     style="--blur-radius: {blurRadius}px; background-image: url({thumbhashUrl}); background-size: cover;">
-    <img
-            {...imgAttributes}
-            alt={flatlayerImage.getAlt()}
-            class:imageLoaded
-            class:will-animate={willAnimate}
-            class:animate={imageLoaded && shouldAnimate}
-            bind:this={imageElement}
-    />
-</div>
+{#if imageData}
+    <div class="flatlayer-image-wrapper {$$restProps.class || ''}"
+         style="--blur-radius: {blurRadius}px; background-image: url({thumbhashUrl}); background-size: cover;">
+        <img
+                {...imgAttributes}
+                alt={alt || flatlayerImage.getAlt()}
+                {title}
+                class:imageLoaded
+                class:will-animate={willAnimate}
+                class:animate={imageLoaded && shouldAnimate}
+                bind:this={imageElement}
+        />
+    </div>
+{/if}
 
 <style>
     .flatlayer-image-wrapper {
@@ -87,6 +116,7 @@
         width: 100%;
         height: auto;
         display: block;
+        margin: 0 !important;
     }
 
     .will-animate {

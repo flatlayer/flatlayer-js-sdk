@@ -49,10 +49,19 @@ class FlatlayerImage {
             alt: this.getAlt(),
             sizes: sizesAttribute,
             srcset: srcset,
-            ...(displaySize ? { width: displaySize[0], height: displaySize[1] } : {}),
+            ...this.getDimensions(displaySize)
         };
 
         return { ...defaultAttributes, ...attributes };
+    }
+
+    getDimensions(displaySize) {
+        if (displaySize) {
+            return { width: displaySize[0], height: displaySize[1] };
+        } else if (this.imageData.width && this.imageData.height) {
+            return { width: this.imageData.width, height: this.imageData.height };
+        }
+        return {};
     }
 
     /**
@@ -249,7 +258,8 @@ class FlatlayerImage {
     getUrl(transforms = {}) {
         const allTransforms = { ...this.defaultTransforms, ...transforms };
         const queryParams = new URLSearchParams(allTransforms).toString();
-        return `${this.imageEndpoint}/${this.imageData.id}.${this.originalExtension}${queryParams ? `?${queryParams}` : ''}`;
+        const extension = allTransforms.fm || this.originalExtension;
+        return `${this.imageEndpoint}/${this.imageData.id}.${extension}${queryParams ? `?${queryParams}` : ''}`;
     }
 }
 
