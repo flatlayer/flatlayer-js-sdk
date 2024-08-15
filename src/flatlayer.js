@@ -26,7 +26,15 @@ class Flatlayer {
      * @private
      */
     async _request(url, options = {}) {
-        const response = await fetch(url, options);
+        const defaultOptions = {
+            headers: {
+                'Accept': 'application/json',
+                ...options.headers
+            }
+        };
+        const mergedOptions = { ...defaultOptions, ...options };
+
+        const response = await fetch(url, mergedOptions);
         if (!response.ok) {
             const errorData = await response.json();
             const errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
