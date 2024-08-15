@@ -69,7 +69,17 @@ class FlatlayerImage {
      * @returns {string} The alt text.
      */
     getAlt() {
-        return this.imageData.meta?.alt || this.imageData.filename.split('.')[0] || 'Image';
+        if (this.imageData.meta?.alt) {
+            return this.imageData.meta.alt;
+        }
+        if (typeof this.imageData.filename === 'string') {
+            const parts = this.imageData.filename.split('.');
+            return parts.length > 1 ? parts.slice(0, -1).join('.') : this.imageData.filename;
+        }
+        if (this.imageData.id) {
+            return `Image ${this.imageData.id}`;
+        }
+        return 'Image';
     }
 
     /**

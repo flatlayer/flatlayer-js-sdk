@@ -65,12 +65,19 @@ class Flatlayer {
         while (retries < this.options.maxRetries) {
             try {
                 const response = await fetch(url, mergedOptions);
+                // Check if response is undefined
+                if (!response) {
+                    throw new Error('Fetch response is undefined');
+                }
                 if (!response.ok) {
-                    throw new FlatlayerError(response.status, await response.json());
+                    const errorData = await response.json();
+                    throw new FlatlayerError(response.status, errorData);
                 }
                 return response.json();
             } catch (error) {
-                if (retries === this.options.maxRetries - 1) throw error;
+                if (retries === this.options.maxRetries - 1) {
+                    throw error;
+                }
                 await new Promise(resolve => setTimeout(resolve, this.options.retryDelay));
                 retries++;
             }
