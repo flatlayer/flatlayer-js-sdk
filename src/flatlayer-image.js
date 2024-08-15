@@ -20,6 +20,8 @@ class FlatlayerImage {
         this.baseUrl = baseUrl;
         this.imageData = imageData;
         this.defaultTransforms = defaultTransforms;
+        this.defaultQuality = defaultTransforms.q || 80; // Store default quality separately
+        delete this.defaultTransforms.q; // Remove quality from default transforms
         this.breakpoints = breakpoints || {
             sm: 640,
             md: 768,
@@ -28,7 +30,6 @@ class FlatlayerImage {
             '2xl': 1536,
         };
         this.imageEndpoint = imageEndpoint || `${this.baseUrl}/image`;
-        this.originalExtension = imageData.extension;
     }
 
     /**
@@ -145,7 +146,7 @@ class FlatlayerImage {
             } else {
                 srcset = this.generateFixedSrcset(baseWidth, baseHeight, maxWidth);
             }
-        } else {
+        } else if (maxWidth > 0) {
             srcset = isFluid
                 ? this.generateFluidSrcset(maxWidth, maxWidth)
                 : [this.formatSrcsetEntry(maxWidth)];
@@ -188,12 +189,10 @@ class FlatlayerImage {
     generateFixedSrcset(baseWidth, baseHeight, maxWidth) {
         const srcset = [this.formatSrcsetEntry(baseWidth, baseHeight)];
         const retinaWidth = Math.min(baseWidth * 2, maxWidth);
-
         if (retinaWidth > baseWidth) {
             const retinaHeight = Math.round(retinaWidth * (baseHeight / baseWidth));
             srcset.push(this.formatSrcsetEntry(retinaWidth, retinaHeight));
         }
-
         return srcset;
     }
 
@@ -202,7 +201,11 @@ class FlatlayerImage {
      * @returns {number} The width of the media.
      */
     getMediaWidth() {
-        return this.imageData.width || 0;
+        return parseInt(this.imageData.width, 10) || 0;
+    }
+
+    getMediaHeight() {
+        return parseInt(this.imageData.height, 10) || 0;
     }
 
     /**
@@ -267,9 +270,14 @@ class FlatlayerImage {
      */
     getUrl(transforms = {}) {
         const allTransforms = { ...this.defaultTransforms, ...transforms };
+
+        // Only add quality if there are other transforms or if it's explicitly set
+        if (Object.keys(allTransforms).length > 0 || transforms.q) {
+            allTransforms.q = transforms.q || this.defaultQuality;
+        }
+
         const queryParams = new URLSearchParams(allTransforms).toString();
-        const extension = allTransforms.fm || this.originalExtension;
-        return `${this.imageEndpoint}/${this.imageData.id}.${extension}${queryParams ? `?${queryParams}` : ''}`;
+        return `${this.imageEndpoint}/${this.imageData.id}${queryParams ? `?${queryParams}` : ''}`;
     }
 }
 

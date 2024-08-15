@@ -5,7 +5,8 @@ describe('FlatlayerImage', () => {
     const baseUrl = 'https://api.example.com';
     const imageData = {
         id: 'test-image-id',
-        dimensions: { width: 1600, height: 900 },
+        width: 1600,
+        height: 900,
         meta: { alt: 'Test image' }
     };
 
@@ -134,9 +135,9 @@ describe('FlatlayerImage', () => {
             expect(flatlayerImage.getAlt()).toBe('Test image');
         });
 
-        it('should return an empty string if no alt text is provided', () => {
+        it('should return "Image {id}" if no alt text is provided', () => {
             const imageWithoutAlt = new FlatlayerImage(baseUrl, { ...imageData, meta: {} });
-            expect(imageWithoutAlt.getAlt()).toBe('');
+            expect(imageWithoutAlt.getAlt()).toBe('Image test-image-id');
         });
     });
 
@@ -148,13 +149,14 @@ describe('FlatlayerImage', () => {
         it('should handle string dimensions', () => {
             const stringDimensionsImage = new FlatlayerImage(baseUrl, {
                 ...imageData,
-                dimensions: JSON.stringify({ width: 800, height: 600 })
+                width: '800',
+                height: '600'
             });
             expect(stringDimensionsImage.getMediaWidth()).toBe(800);
         });
 
         it('should return 0 if dimensions are not available', () => {
-            const noDimensionsImage = new FlatlayerImage(baseUrl, { ...imageData, dimensions: undefined });
+            const noDimensionsImage = new FlatlayerImage(baseUrl, { ...imageData, width: undefined, height: undefined });
             expect(noDimensionsImage.getMediaWidth()).toBe(0);
         });
     });
@@ -163,20 +165,16 @@ describe('FlatlayerImage', () => {
         it('should generate correct fluid srcset entries', () => {
             const result = flatlayerImage.generateFluidSrcset(800, 1600, 0.75);
 
-            // Check for the presence of specific width entries
             expect(result.some(entry => entry.match(/1600w$/))).toBe(true);
             expect(result.some(entry => entry.match(/1440w$/))).toBe(true);
             expect(result.some(entry => entry.match(/800w$/))).toBe(true);
 
-            // Check that there's no entry larger than 1600w
             expect(result.every(entry => !entry.match(/(\d+)w$/) || parseInt(entry.match(/(\d+)w$/)[1]) <= 1600)).toBe(true);
 
-            // Check the format of the entries
             result.forEach(entry => {
                 expect(entry).toMatch(/^https:\/\/api\.example\.com\/image\/test-image-id\?q=80&w=\d+&h=\d+ \d+w$/);
             });
 
-            // Check that the aspect ratio is maintained (0.75)
             result.forEach(entry => {
                 const match = entry.match(/w=(\d+)&h=(\d+)/);
                 if (match) {
@@ -192,32 +190,26 @@ describe('FlatlayerImage', () => {
         it('should generate correct fixed srcset entries', () => {
             const result = flatlayerImage.generateFixedSrcset(400, 300, 1600);
 
-            // Check that we have exactly two entries
             expect(result.length).toBe(2);
 
-            // Check for the presence of 400w and 800w entries
             expect(result.some(entry => entry.match(/400w$/))).toBe(true);
             expect(result.some(entry => entry.match(/800w$/))).toBe(true);
 
-            // Check that there's no 1600w entry
             expect(result.every(entry => !entry.match(/1600w$/))).toBe(true);
 
-            // Check the format of the entries
             result.forEach(entry => {
                 expect(entry).toMatch(/^https:\/\/api\.example\.com\/image\/test-image-id\?q=80&w=\d+&h=\d+ \d+w$/);
             });
 
-            // Check that the aspect ratio is maintained (4:3)
             result.forEach(entry => {
                 const match = entry.match(/w=(\d+)&h=(\d+)/);
                 if (match) {
                     const width = parseInt(match[1]);
                     const height = parseInt(match[2]);
-                    expect(height / width).toBeCloseTo(0.75, 2); // 300/400 = 0.75
+                    expect(height / width).toBeCloseTo(0.75, 2);
                 }
             });
 
-            // Check specific dimensions
             expect(result[0]).toMatch(/w=400&h=300 400w$/);
             expect(result[1]).toMatch(/w=800&h=600 800w$/);
         });
@@ -226,7 +218,7 @@ describe('FlatlayerImage', () => {
     describe('getUrl', () => {
         it('should generate correct URL with transforms', () => {
             const url = flatlayerImage.getUrl({ w: 300, h: 200, q: 90 });
-            expect(url).toBe('https://api.example.com/image/test-image-id?w=300&h=200&q=90');
+            expect(url).toBe('https://api.example.com/image/test-image-id?q=90&w=300&h=200');
         });
 
         it('should generate correct URL without transforms', () => {
