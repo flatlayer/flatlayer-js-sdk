@@ -9,21 +9,40 @@ class MarkdownComponentParser {
         let lastIndex = 0;
         for (const match of input.matchAll(this.componentRegex)) {
             if (match.index > lastIndex) {
-                result.push({ type: 'markdown', content: input.slice(lastIndex, match.index).trim() });
+                result.push({ type: 'markdown', content: input.slice(lastIndex, match.index) });
             }
             const [fullMatch, name, propsString, children] = match;
             const props = this.parseProps(propsString);
-            const parsedChildren = children ? this.parse(children) : null;
-            result.push({
-                type: 'component',
-                name,
-                props,
-                children: parsedChildren
-            });
+            let parsedChildren = children ? this.parse(children) : null;
+
+            // Special case for paragraph tags
+            if (name === 'p') {
+                if (Object.keys(props).length === 0 && // No attributes
+                    parsedChildren &&
+                    parsedChildren.length === 1 &&
+                    parsedChildren[0].type === 'markdown' &&
+                    !/<\w+/.test(parsedChildren[0].content)) { // No nested tags
+                    result.push(parsedChildren[0]);
+                } else {
+                    result.push({
+                        type: 'component',
+                        name,
+                        props,
+                        children: parsedChildren
+                    });
+                }
+            } else {
+                result.push({
+                    type: 'component',
+                    name,
+                    props,
+                    children: parsedChildren
+                });
+            }
             lastIndex = match.index + fullMatch.length;
         }
         if (lastIndex < input.length) {
-            result.push({ type: 'markdown', content: input.slice(lastIndex).trim() });
+            result.push({ type: 'markdown', content: input.slice(lastIndex) });
         }
         return result;
     }

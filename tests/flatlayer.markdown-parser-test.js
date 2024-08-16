@@ -32,9 +32,34 @@ describe('MarkdownComponentParser', () => {
             expect(result).toEqual([
                 { type: 'markdown', content: 'Start' },
                 { type: 'component', name: 'Wrapper', props: {}, children: [
-                        { type: 'markdown', content: '<p>Hello</p>' }
+                        { type: 'markdown', content: 'Hello' }
                     ]},
                 { type: 'markdown', content: 'End' }
+            ]);
+        });
+
+        it('should treat paragraph tags with only text as markdown', () => {
+            const input = '<p>This is a paragraph.</p>';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'markdown', content: 'This is a paragraph.' }
+            ]);
+        });
+
+        it('should keep paragraph tags as components if they have attributes or nested elements', () => {
+            const input = '<p class="special">This is special.</p><p>This is <strong>important</strong>.</p>';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'component', name: 'p', props: { class: 'special' }, children: [
+                        { type: 'markdown', content: 'This is special.' }
+                    ]},
+                { type: 'component', name: 'p', props: {}, children: [
+                        { type: 'markdown', content: 'This is ' },
+                        { type: 'component', name: 'strong', props: {}, children: [
+                                { type: 'markdown', content: 'important' }
+                            ]},
+                        { type: 'markdown', content: '.' }
+                    ]}
             ]);
         });
 
