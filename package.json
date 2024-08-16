@@ -15,7 +15,7 @@
       "require": "./dist/flatlayer.js"
     },
     "./svelte/ResponsiveImage": "./src/svelte/ResponsiveImage.svelte",
-    "./svelte/MarkdownContent": "./src/svelte/MarkdownContent.svelte"
+    "./svelte/Markdown": "./src/svelte/Markdown.svelte"
   },
   "scripts": {
     "build": "rollup -c",
