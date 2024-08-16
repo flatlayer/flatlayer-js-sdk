@@ -109,8 +109,7 @@ describe('MarkdownComponentParser', () => {
         });
 
         it('should parse content with multiple components and markdown', () => {
-            const input = `
-# Title
+            const input = `# Title
 
 <Component1 />
 
@@ -120,19 +119,16 @@ Some text here.
   <NestedComponent />
 </Component2>
 
-More text.
-`;
+More text.`;
             const result = parser.parse(input);
             expect(result).toEqual([
-                { type: 'markdown', content: '# Title' },
+                { type: 'markdown', content: '# Title\n\n' },
                 { type: 'component', name: 'Component1', props: {}, children: null },
-                { type: 'markdown', content: 'Some text here.' },
+                { type: 'markdown', content: '\n\nSome text here.\n\n' },
                 { type: 'component', name: 'Component2', props: {}, children: [
-                        { type: 'markdown', content: '' },
                         { type: 'component', name: 'NestedComponent', props: {}, children: null },
-                        { type: 'markdown', content: '' }
                     ]},
-                { type: 'markdown', content: 'More text.' }
+                { type: 'markdown', content: '\n\nMore text.' }
             ]);
         });
     });

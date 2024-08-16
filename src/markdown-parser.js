@@ -9,7 +9,10 @@ class MarkdownComponentParser {
         let lastIndex = 0;
         for (const match of input.matchAll(this.componentRegex)) {
             if (match.index > lastIndex) {
-                result.push({ type: 'markdown', content: input.slice(lastIndex, match.index) });
+                const content = input.slice(lastIndex, match.index);
+                if (content.trim()) {
+                    result.push({ type: 'markdown', content });
+                }
             }
             const [fullMatch, name, propsString, children] = match;
             const props = this.parseProps(propsString);
@@ -42,7 +45,10 @@ class MarkdownComponentParser {
             lastIndex = match.index + fullMatch.length;
         }
         if (lastIndex < input.length) {
-            result.push({ type: 'markdown', content: input.slice(lastIndex) });
+            const content = input.slice(lastIndex);
+            if (content.trim()) {
+                result.push({ type: 'markdown', content });
+            }
         }
         return result;
     }
@@ -54,7 +60,9 @@ class MarkdownComponentParser {
             let value;
             if (objectLiteral) {
                 try {
-                    value = JSON.parse(objectLiteral);
+                    // Remove the outer set of curly braces and parse
+                    const trimmedLiteral = objectLiteral.replace(/^\{([\s\S]*)\}$/, '$1').trim();
+                    value = this.parseJSONLike(trimmedLiteral);
                 } catch (e) {
                     console.warn(`Invalid JSON in prop ${key}:`, objectLiteral);
                     value = objectLiteral;
@@ -69,6 +77,11 @@ class MarkdownComponentParser {
             props[key] = value;
         }
         return props;
+    }
+
+    parseJSONLike(str) {
+        // This function parses a JavaScript-like object literal
+        return Function('"use strict";return (' + str + ')')();
     }
 }
 
