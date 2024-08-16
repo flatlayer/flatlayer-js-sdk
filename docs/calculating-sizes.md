@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This guide provides detailed instructions for an LLM on how to analyze code and calculate the `sizes` attribute for responsive images in a Flatlayer SDK project. The focus is on Svelte projects using Tailwind CSS, but the principles can be applied to other frameworks as well.
+This guide provides detailed instructions on how to analyze code and calculate the `sizes` attribute for responsive images in a Flatlayer SDK project. The focus is on Svelte projects using Tailwind CSS, but the principles can be applied to other frameworks as well.
 
 ## General Process
 
@@ -161,7 +161,7 @@ Calculation:
 6. 2XL (≥ 1536px): `calc(1536px - 2rem)`
 
 Resulting `sizes` attribute:
-```javascript
+```
 sizes={[
   'calc(100vw - 2rem)',
   'sm:calc(640px - 2rem)',
@@ -194,7 +194,7 @@ Calculation:
 6. 2XL (≥ 1536px): `calc((1536px - 2rem - 2rem) / 3)`
 
 Resulting `sizes` attribute:
-```javascript
+```
 sizes={[
   'calc(100vw - 2rem)',
   'sm:calc((640px - 3rem) / 2)',
@@ -227,7 +227,7 @@ Calculation:
 6. 2XL (≥ 1536px): `calc((1536px - 2rem - 3rem) / 4)`
 
 Resulting `sizes` attribute:
-```javascript
+```
 sizes={[
   'calc(100vw - 2rem)',
   'sm:calc((640px - 3rem) / 2)',
@@ -295,14 +295,14 @@ Calculation:
 6. 2XL (≥ 1536px): `calc(((1536px - 2rem - 2rem) * 2/3 - 1rem) / 2)`
 
 Resulting `sizes` attribute:
-```javascript
+```
 sizes={[
-  'calc(100vw - 2rem)',
-  'sm:calc((640px - 3rem) / 2)',
-  'md:calc((768px - 3rem) / 2)',
-  'lg:calc(((1024px - 4rem) * 2/3 - 1rem) / 2)',
-  'xl:calc(((1280px - 4rem) * 2/3 - 1rem) / 2)',
-  '2xl:calc(((1536px - 4rem) * 2/3 - 1rem) / 2)'
+    'calc(100vw - 2rem)',
+    'sm:calc((640px - 3rem) / 2)',
+    'md:calc((768px - 3rem) / 2)',
+    'lg:calc(((1024px - 4rem) * 2/3 - 1rem) / 2)',
+    'xl:calc(((1280px - 4rem) * 2/3 - 1rem) / 2)',
+    '2xl:calc(((1536px - 4rem) * 2/3 - 1rem) / 2)'
 ]}
 ```
 
