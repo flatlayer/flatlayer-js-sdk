@@ -9,14 +9,14 @@ class MarkdownComponentParser {
         let lastIndex = 0;
         for (const match of input.matchAll(this.componentRegex)) {
             if (match.index > lastIndex) {
-                const content = input.slice(lastIndex, match.index);
-                if (content.trim()) {
+                const content = input.slice(lastIndex, match.index).trim();
+                if (content) {
                     result.push({ type: 'markdown', content });
                 }
             }
             const [fullMatch, name, propsString, children] = match;
             const props = this.parseProps(propsString);
-            let parsedChildren = children ? this.parse(children) : null;
+            let parsedChildren = children ? this.parse(children.trim()) : null;
 
             // Special case for paragraph tags
             if (name === 'p') {
@@ -45,8 +45,8 @@ class MarkdownComponentParser {
             lastIndex = match.index + fullMatch.length;
         }
         if (lastIndex < input.length) {
-            const content = input.slice(lastIndex);
-            if (content.trim()) {
+            const content = input.slice(lastIndex).trim();
+            if (content) {
                 result.push({ type: 'markdown', content });
             }
         }
@@ -60,7 +60,6 @@ class MarkdownComponentParser {
             let value;
             if (objectLiteral) {
                 try {
-                    // Remove the outer set of curly braces and parse
                     const trimmedLiteral = objectLiteral.replace(/^\{([\s\S]*)\}$/, '$1').trim();
                     value = this.parseJSONLike(trimmedLiteral);
                 } catch (e) {
@@ -80,7 +79,6 @@ class MarkdownComponentParser {
     }
 
     parseJSONLike(str) {
-        // This function parses a JavaScript-like object literal
         return Function('"use strict";return (' + str + ')')();
     }
 }
