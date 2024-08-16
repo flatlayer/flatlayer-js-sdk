@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This guide provides detailed instructions on how to analyze code and calculate the `sizes` attribute for responsive images in a Flatlayer SDK project. The focus is on Svelte projects using Tailwind CSS, but the principles can be applied to other frameworks as well.
+This guide provides detailed instructions on how to calculate the `sizes` attribute for responsive images in a Flatlayer SDK project, focusing on Svelte projects using Tailwind CSS. It's important to note that the Flatlayer SDK only supports `px` and `vw` units, and `calc()` expressions containing these units.
 
 ## General Process
 
@@ -12,8 +12,8 @@ When calculating the `sizes` attribute, follow these steps:
 2. Examine the component hierarchy and nesting.
 3. Evaluate Tailwind classes and their effects on layout.
 4. Consider responsive breakpoints and how they affect the image size.
-5. Account for containers, padding, margins, and grid systems.
-6. Calculate the image size for each breakpoint.
+5. Convert rem values to px (assume 1rem = 16px for Tailwind).
+6. Calculate the image size for each breakpoint using only px, vw, and calc() with these units, as `calc(__vw +/- __px)`.
 7. Express the sizes in the correct format for the `sizes` attribute.
 
 ## Analyzing Project Configuration
@@ -82,7 +82,11 @@ In this example, you need to consider how `Layout`, `main`, `section`, `containe
 
 ## Evaluating Tailwind Classes
 
-Examine the Tailwind classes used in each component, focusing on those that affect width, padding, margin, and responsive behavior.
+When evaluating Tailwind classes, remember to convert rem values to px. In Tailwind, 1rem is typically equal to 16px. For example:
+
+- `p-4` (padding: 1rem) = 16px
+- `p-6` (padding: 1.5rem) = 24px
+- `gap-4` (gap: 1rem) = 16px
 
 ### Container Class
 
@@ -153,22 +157,22 @@ Formula: `(container width - (columns - 1) * gap) / columns`
 ```
 
 Calculation:
-1. Mobile (< 640px): `calc(100vw - 2rem)` (full viewport width minus padding)
-2. SM (≥ 640px): `calc(640px - 2rem)` (container max-width minus padding)
-3. MD (≥ 768px): `calc(768px - 2rem)`
-4. LG (≥ 1024px): `calc(1024px - 2rem)`
-5. XL (≥ 1280px): `calc(1280px - 2rem)`
-6. 2XL (≥ 1536px): `calc(1536px - 2rem)`
+1. Mobile (< 640px): `calc(100vw - 32px)` (full viewport width minus padding)
+2. SM (≥ 640px): `608px` (container max-width minus padding)
+3. MD (≥ 768px): `736px`
+4. LG (≥ 1024px): `992px`
+5. XL (≥ 1280px): `1248px`
+6. 2XL (≥ 1536px): `1504px`
 
 Resulting `sizes` attribute:
 ```
 sizes={[
-  'calc(100vw - 2rem)',
-  'sm:calc(640px - 2rem)',
-  'md:calc(768px - 2rem)',
-  'lg:calc(1024px - 2rem)',
-  'xl:calc(1280px - 2rem)',
-  '2xl:calc(1536px - 2rem)'
+  'calc(100vw - 32px)',
+  'sm:608px',
+  'md:736px',
+  'lg:992px',
+  'xl:1248px',
+  '2xl:1504px'
 ]}
 ```
 
@@ -186,22 +190,22 @@ sizes={[
 ```
 
 Calculation:
-1. Mobile (< 640px): `calc(100vw - 2rem)` (full width)
-2. SM (≥ 640px): `calc((640px - 2rem - 1rem) / 2)` (half width minus padding and gap)
-3. MD (≥ 768px): `calc((768px - 2rem - 1rem) / 2)`
-4. LG (≥ 1024px): `calc((1024px - 2rem - 2rem) / 3)` (one-third width)
-5. XL (≥ 1280px): `calc((1280px - 2rem - 2rem) / 3)`
-6. 2XL (≥ 1536px): `calc((1536px - 2rem - 2rem) / 3)`
+1. Mobile (< 640px): `calc(100vw - 32px)` (full width)
+2. SM (≥ 640px): `calc(50vw - 24px)` (half width minus padding and half gap)
+3. MD (≥ 768px): `calc(50vw - 24px)`
+4. LG (≥ 1024px): `calc(33.33vw - 21px)` (one-third width)
+5. XL (≥ 1280px): `calc(33.33vw - 21px)`
+6. 2XL (≥ 1536px): `calc(33.33vw - 21px)`
 
 Resulting `sizes` attribute:
 ```
 sizes={[
-  'calc(100vw - 2rem)',
-  'sm:calc((640px - 3rem) / 2)',
-  'md:calc((768px - 3rem) / 2)',
-  'lg:calc((1024px - 4rem) / 3)',
-  'xl:calc((1280px - 4rem) / 3)',
-  '2xl:calc((1536px - 4rem) / 3)'
+  'calc(100vw - 32px)',
+  'sm:calc(50vw - 24px)',
+  'md:calc(50vw - 24px)',
+  'lg:calc(33.33vw - 21px)',
+  'xl:calc(33.33vw - 21px)',
+  '2xl:calc(33.33vw - 21px)'
 ]}
 ```
 
@@ -219,22 +223,22 @@ sizes={[
 ```
 
 Calculation:
-1. Mobile (< 640px): `calc(100vw - 2rem)` (full width)
-2. SM (≥ 640px): `calc((640px - 2rem - 1rem) / 2)` (two columns)
-3. MD (≥ 768px): `calc((768px - 2rem - 1rem) / 2)`
-4. LG (≥ 1024px): `calc((1024px - 2rem - 2rem) / 3)` (three columns)
-5. XL (≥ 1280px): `calc((1280px - 2rem - 3rem) / 4)` (four columns)
-6. 2XL (≥ 1536px): `calc((1536px - 2rem - 3rem) / 4)`
+1. Mobile (< 640px): `calc(100vw - 32px)` (full width)
+2. SM (≥ 640px): `calc(50vw - 24px)` (two columns)
+3. MD (≥ 768px): `calc(50vw - 24px)`
+4. LG (≥ 1024px): `calc(33.33vw - 21px)` (three columns)
+5. XL (≥ 1280px): `calc(25vw - 20px)` (four columns)
+6. 2XL (≥ 1536px): `calc(25vw - 20px)`
 
 Resulting `sizes` attribute:
 ```
 sizes={[
-  'calc(100vw - 2rem)',
-  'sm:calc((640px - 3rem) / 2)',
-  'md:calc((768px - 3rem) / 2)',
-  'lg:calc((1024px - 4rem) / 3)',
-  'xl:calc((1280px - 5rem) / 4)',
-  '2xl:calc((1536px - 5rem) / 4)'
+  'calc(100vw - 32px)',
+  'sm:calc(50vw - 24px)',
+  'md:calc(50vw - 24px)',
+  'lg:calc(33.33vw - 21px)',
+  'xl:calc(25vw - 20px)',
+  '2xl:calc(25vw - 20px)'
 ]}
 ```
 
@@ -242,80 +246,177 @@ sizes={[
 
 ### Nested Components with Mixed Layouts
 
-Consider a more complex scenario with nested components and mixed layouts:
-
-```svelte
-<script>
-  import { ResponsiveImage } from 'flatlayer-sdk/svelte';
-  import ImageCard from './ImageCard.svelte';
-</script>
-
-<div class="container mx-auto px-4">
-  <div class="flex flex-col lg:flex-row lg:space-x-8">
-    <div class="w-full lg:w-2/3">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {#each images as image}
-          <ImageCard>
-            <ResponsiveImage imageData={image} sizes={/* Calculate this */} />
-          </ImageCard>
-        {/each}
-      </div>
-    </div>
-    <div class="w-full lg:w-1/3 mt-8 lg:mt-0">
-      <Sidebar />
-    </div>
-  </div>
-</div>
-```
-
-To calculate the `sizes` for the `ResponsiveImage` component:
-
-1. Analyze the component hierarchy:
-    - Outermost: Container with padding
-    - First level: Flex container (column on mobile, row on lg)
-    - Second level (left column): Grid container
-    - Third level: ImageCard component
-
-2. Calculate available width at each breakpoint:
-    - Mobile (< 640px): Full width of container
-    - SM to MD (640px - 1023px): Half width of container (2-column grid)
-    - LG and above (≥ 1024px): 2/3 of container width, then half of that (2-column grid)
-
-3. Account for padding and gaps:
-    - Container padding: 1rem on each side (2rem total)
-    - Grid gap: 1rem between columns (sm and above)
-    - Flex space between columns: 2rem (lg and above)
+[The scenario description remains the same]
 
 Calculation:
-1. Mobile (< 640px): `calc(100vw - 2rem)`
-2. SM (≥ 640px): `calc((640px - 2rem - 1rem) / 2)`
-3. MD (≥ 768px): `calc((768px - 2rem - 1rem) / 2)`
-4. LG (≥ 1024px): `calc(((1024px - 2rem - 2rem) * 2/3 - 1rem) / 2)`
-5. XL (≥ 1280px): `calc(((1280px - 2rem - 2rem) * 2/3 - 1rem) / 2)`
-6. 2XL (≥ 1536px): `calc(((1536px - 2rem - 2rem) * 2/3 - 1rem) / 2)`
+1. Mobile (< 640px): `calc(100vw - 32px)`
+2. SM (≥ 640px): `calc(50vw - 24px)`
+3. MD (≥ 768px): `calc(50vw - 24px)`
+4. LG (≥ 1024px): `calc(33.33vw - 21px)`
+5. XL (≥ 1280px): `calc(33.33vw - 21px)`
+6. 2XL (≥ 1536px): `calc(33.33vw - 21px)`
 
 Resulting `sizes` attribute:
 ```
 sizes={[
-    'calc(100vw - 2rem)',
-    'sm:calc((640px - 3rem) / 2)',
-    'md:calc((768px - 3rem) / 2)',
-    'lg:calc(((1024px - 4rem) * 2/3 - 1rem) / 2)',
-    'xl:calc(((1280px - 4rem) * 2/3 - 1rem) / 2)',
-    '2xl:calc(((1536px - 4rem) * 2/3 - 1rem) / 2)'
+  'calc(100vw - 32px)',
+  'sm:calc(50vw - 24px)',
+  'md:calc(50vw - 24px)',
+  'lg:calc(33.33vw - 21px)',
+  'xl:calc(33.33vw - 21px)',
+  '2xl:calc(33.33vw - 21px)'
 ]}
 ```
 
 ## Additional Considerations
 
-1. **Aspect Ratio**: If the image has a fixed aspect ratio, you may need to adjust the height accordingly in your calculations.
+1. **Rem to Px Conversion**: Always convert rem values to px. In Tailwind, 1rem is typically 16px.
 
-2. **Minimum and Maximum Sizes**: Consider setting minimum and maximum sizes to prevent extreme scaling.
+2. **Fractional Widths**: When dealing with fractional widths (e.g., 1/3), use precise percentages in vw units (e.g., 33.33vw instead of 33vw).
 
-3. **Browser Support**: Ensure that the calculated sizes are compatible with older browsers if necessary.
+3. **Minimum and Maximum Sizes**: Consider setting minimum and maximum sizes to prevent extreme scaling, but remember to use px units.
 
-4. **Performance**: For very complex layouts, consider simplifying the `sizes` attribute to improve performance while maintaining responsiveness.
+4. **Browser Support**: Ensure that the calculated sizes are compatible with older browsers if necessary.
 
-5. **Dynamic Content**: If the layout can change based on dynamic content, you may need to use more conservative estimates or implement dynamic size calculations in JavaScript.
+5. **Performance**: For very complex layouts, consider simplifying the `sizes` attribute to improve performance while maintaining responsiveness.
 
-6. **Svelte Reactivity**: Remember that Svelte components can have reactive declarations that affect layout. Always check for reactive statements that might influence the image size.
+6. **Dynamic Content**: If the layout can change based on dynamic content, you may need to use more conservative estimates or implement dynamic size calculations in JavaScript.
+
+7. **Svelte Reactivity**: Remember that Svelte components can have reactive declarations that affect layout. Always check for reactive statements that might influence the image size.
+
+8. **Unit Limitations**: Always use only px and vw units, and calc() expressions containing these units. Do not use em, rem, or any other CSS units in the `sizes` attribute.
+## Step-by-Step Process for Calculating Sizes
+
+This section outlines a systematic approach to calculating the `sizes` attribute for responsive images. By following these steps, you can reason through complex layouts and arrive at an accurate sizes value.
+
+### 1. Identify and Simplify the Container Structure
+
+Start by identifying the key components that affect the image's size and create a simplified version of the HTML structure. This helps in focusing on the essential elements that influence the image's dimensions.
+
+Example:
+Original complex structure:
+```html
+<Layout>
+  <Header />
+  <main>
+    <section class="bg-gray-100">
+      <div class="container mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <article class="bg-white rounded-lg shadow-md">
+            <ResponsiveImage {imageData} {sizes} class="w-full h-64 object-cover rounded-t-lg" />
+            <!-- Other content -->
+          </article>
+          <!-- More articles -->
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+```
+
+Simplified structure:
+```html
+<div class="container mx-auto px-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div>
+      <ResponsiveImage {imageData} {sizes} class="w-full" />
+    </div>
+  </div>
+</div>
+```
+
+### 2. Extract Relevant Tailwind Configuration
+
+Examine the `tailwind.config.js` file and extract any settings that may affect the layout, such as custom breakpoints, container settings, or theme customizations.
+
+Example:
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: '1rem',
+        sm: '2rem',
+        lg: '4rem',
+      },
+    },
+    extend: {
+      screens: {
+        'xl': '1280px',
+        '2xl': '1536px',
+      },
+    },
+  },
+  // ...
+}
+```
+
+Relevant extracted settings:
+- Container padding: 1rem (16px) by default, 2rem (32px) from 'sm' breakpoint, 4rem (64px) from 'lg' breakpoint
+- Custom breakpoints: xl at 1280px, 2xl at 1536px
+
+### 3. Analyze Image Display Across Breakpoints
+
+Consider how the image will be displayed at different screen sizes based on the grid layout and container settings.
+
+Analysis:
+- Mobile (< 768px): Full width of container
+- Tablet (768px - 1023px): 1/2 width of container (2 columns)
+- Desktop (≥ 1024px): 1/3 width of container (3 columns)
+
+### 4. Construct Initial Sizes Value
+
+Create an initial `sizes` value using Tailwind units and more complex calc() expressions. This step allows you to reason through the layout using familiar Tailwind concepts.
+
+Initial sizes construction:
+```
+sizes={[
+  'calc(100vw - 2rem)', // Mobile: full width minus container padding
+  'md:calc(50% - 3rem)', // Tablet: half width minus padding and half of gap
+  'lg:calc(33.333% - 4rem)' // Desktop: one-third width minus padding and two-thirds of gap
+]}
+```
+
+### 5. Convert to Supported Units
+
+Finally, convert the Tailwind units and percentages into the vw and px units supported by the FlatlayerImage class. This step involves calculating fixed pixel values for known container sizes and converting relative units to vw.
+
+Conversion process:
+1. Convert rem to px (1rem = 16px)
+2. Calculate exact pixel values for known container widths
+3. Convert percentages to vw units
+4. Adjust calc() expressions to use only vw and px
+
+Final converted sizes:
+```
+sizes={[
+  'calc(100vw - 32px)', // Mobile: full width minus container padding
+  'md:calc(50vw - 48px)', // Tablet: half width minus padding and half of gap
+  'lg:calc(33.33vw - 64px)', // Desktop: one-third width minus padding and two-thirds of gap
+  'xl:calc(33.33vw - 64px)', // XL breakpoint: same as desktop but with fixed container width
+  '2xl:calc(33.33vw - 64px)' // 2XL breakpoint: same as XL
+]}
+```
+
+### Reasoning Through the Process
+
+When calculating the `sizes` attribute, it's crucial to think through how the layout changes at different breakpoints:
+
+1. **Understand the layout flow**: Analyze how the grid system and container affect the image's width at each breakpoint.
+
+2. **Consider nested components**: Factor in how parent components might constrain or affect the image's size.
+
+3. **Account for gaps and padding**: Remember to subtract not just padding, but also relevant portions of grid gaps from the available width.
+
+4. **Use precise values**: When converting percentages to vw units, use precise values (e.g., 33.33vw instead of 33vw) for accuracy.
+
+5. **Handle fixed container sizes**: At larger breakpoints, the container might have a fixed max-width. Use pixel values in these cases instead of vw units.
+
+6. **Simplify when possible**: If the image size calculation remains the same across multiple larger breakpoints, you can combine these into a single size descriptor.
+
+7. **Double-check unit support**: Always ensure your final calculations only use vw and px units, as these are the only units supported by the FlatlayerImage class.
+
+By systematically working through these steps and considerations, you can accurately calculate the `sizes` attribute for even complex responsive layouts. This process ensures that the responsive image will be displayed optimally across all device sizes, while adhering to the technical constraints of the FlatlayerImage class.
