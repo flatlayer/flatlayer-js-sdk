@@ -4,12 +4,13 @@ import commonjs from '@rollup/plugin-commonjs';
 import { terser } from 'rollup-plugin-terser';
 
 export default {
-    input: 'src/flatlayer.js',
+    input: 'src/index.js',
     output: [
         {
             file: 'dist/flatlayer.js',
             format: 'umd',
-            name: 'Flatlayer',
+            name: 'FlatlayerSDK',
+            exports: 'named',
         },
         {
             file: 'dist/flatlayer.mjs',
@@ -18,7 +19,8 @@ export default {
         {
             file: 'dist/flatlayer.min.js',
             format: 'umd',
-            name: 'Flatlayer',
+            name: 'FlatlayerSDK',
+            exports: 'named',
             plugins: [terser()],
         },
     ],

@@ -276,8 +276,11 @@ class FlatlayerImage {
             allTransforms.q = transforms.q || this.defaultQuality;
         }
 
+        // Determine the file extension
+        let extension = allTransforms.fm || this.imageData.extension || 'jpg';
+
         const queryParams = new URLSearchParams(allTransforms).toString();
-        return `${this.imageEndpoint}/${this.imageData.id}${queryParams ? `?${queryParams}` : ''}`;
+        return `${this.imageEndpoint}/${this.imageData.id}.${extension}${queryParams ? `?${queryParams}` : ''}`;
     }
 }
 
