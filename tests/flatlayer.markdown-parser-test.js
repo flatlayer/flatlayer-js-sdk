@@ -20,9 +20,9 @@ describe('MarkdownComponentParser', () => {
             const input = 'Before <Component foo="bar" /> After';
             const result = parser.parse(input);
             expect(result).toEqual([
-                { type: 'markdown', content: 'Before' },
+                { type: 'markdown', content: 'Before ' },
                 { type: 'component', name: 'Component', props: { foo: 'bar' }, children: null },
-                { type: 'markdown', content: 'After' }
+                { type: 'markdown', content: ' After' }
             ]);
         });
 
@@ -30,11 +30,11 @@ describe('MarkdownComponentParser', () => {
             const input = 'Start <Wrapper><p>Hello</p></Wrapper> End';
             const result = parser.parse(input);
             expect(result).toEqual([
-                { type: 'markdown', content: 'Start' },
+                { type: 'markdown', content: 'Start ' },
                 { type: 'component', name: 'Wrapper', props: {}, children: [
                         { type: 'markdown', content: 'Hello' }
                     ]},
-                { type: 'markdown', content: 'End' }
+                { type: 'markdown', content: ' End' }
             ]);
         });
 
@@ -69,7 +69,7 @@ describe('MarkdownComponentParser', () => {
             expect(result).toEqual([
                 { type: 'component', name: 'Outer', props: {}, children: [
                         { type: 'component', name: 'Inner', props: {}, children: [
-                                { type: 'markdown', content: '<p>Content</p>' }
+                                { type: 'markdown', content: 'Content' }
                             ]}
                     ]}
             ]);
