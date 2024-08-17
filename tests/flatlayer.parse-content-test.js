@@ -156,7 +156,7 @@ def greet():
         const result = MarkdownParser.parseContent(input);
         expect(result).toEqual([
             { type: 'markdown', content: 'Before' },
-            { type: 'component', name: 'WhitespaceComponent', props: {}, children: [] },
+            { type: 'component', name: 'WhitespaceComponent', props: {}, children: null },
             { type: 'markdown', content: 'After' }
         ]);
     });

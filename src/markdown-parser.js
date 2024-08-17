@@ -3,11 +3,26 @@ import { parse } from 'svelte/compiler';
 class MarkdownComponentParser {
     constructor() {
         this.codeBlockRegex = /^```[\s\S]*?^```/gm;
+        this.codeBlocks = [];
     }
 
     parse(input) {
-        const parsed = parse(input);
+        // Preserve code blocks before parsing
+        const preprocessedInput = this.preserveCodeBlocks(input);
+        const parsed = parse(preprocessedInput);
         return this.processNode(parsed.html);
+    }
+
+    preserveCodeBlocks(text) {
+        this.codeBlocks = [];
+        return text.replace(this.codeBlockRegex, (match) => {
+            this.codeBlocks.push(match);
+            return `__CODE_BLOCK_${this.codeBlocks.length - 1}__`;
+        });
+    }
+
+    restoreCodeBlocks(text) {
+        return text.replace(/__CODE_BLOCK_(\d+)__/g, (_, index) => this.codeBlocks[parseInt(index)]);
     }
 
     processNode(node) {
@@ -72,18 +87,8 @@ class MarkdownComponentParser {
     }
 
     processText(node) {
-        const content = this.preserveCodeBlocks(node.data);
-        return content.trim() ? [{ type: 'markdown', content: content.trim() }] : [];
-    }
-
-    preserveCodeBlocks(text) {
-        const codeBlocks = [];
-        const preservedText = text.replace(this.codeBlockRegex, (match) => {
-            codeBlocks.push(match);
-            return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
-        });
-
-        return preservedText.replace(/__CODE_BLOCK_(\d+)__/g, (_, index) => codeBlocks[parseInt(index)]);
+        const content = this.restoreCodeBlocks(node.data).trim();
+        return content ? [{ type: 'markdown', content }] : [];
     }
 }
 
