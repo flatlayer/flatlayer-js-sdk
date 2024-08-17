@@ -56,6 +56,11 @@ class FlatlayerImage {
         return { ...defaultAttributes, ...attributes };
     }
 
+    /**
+     * Get the dimensions of the image.
+     * @param {Array<number>|null} displaySize - The intended display size [width, height].
+     * @returns {Object} An object containing width and height, or an empty object if dimensions are not available.
+     */
     getDimensions(displaySize) {
         if (displaySize) {
             return { width: displaySize[0], height: displaySize[1] };
@@ -197,13 +202,17 @@ class FlatlayerImage {
     }
 
     /**
-     * Get the width of the media.
-     * @returns {number} The width of the media.
+     * Get the width of the image.
+     * @returns {number} The width of the image.
      */
     getMediaWidth() {
         return parseInt(this.imageData.width, 10) || 0;
     }
 
+    /**
+     * Get the height of the image.
+     * @returns {number} The height of the image.
+     */
     getMediaHeight() {
         return parseInt(this.imageData.height, 10) || 0;
     }
