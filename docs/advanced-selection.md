@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The Flatlayer SDK provides powerful selection capabilities that allow you to retrieve specific data from your Flatlayer CMS. This guide will walk you through the various selection options available in the SDK, demonstrating how to construct complex queries using the Field Selection Language (FSL).
+The Flatlayer SDK offers powerful selection capabilities that allow you to retrieve specific data from your Flatlayer CMS efficiently. This guide will walk you through the various selection options available in the SDK, demonstrating how to construct complex queries using the Field Selection Language (FSL). Mastering these selection techniques will help you optimize your API requests and improve your application's performance.
 
 ## Basic Usage
 
@@ -16,7 +16,7 @@ flatlayer.getEntryList('post', {
   .catch(error => console.error('Error:', error));
 ```
 
-This will retrieve only the title, author, and publication date for each post.
+This will retrieve only the title, author, and publication date for each post. For more information on retrieving entries, see the [Entry Retrieval Guide](./entry-retrieval.md).
 
 ## Field Selection Techniques
 
@@ -124,11 +124,41 @@ flatlayer.getEntryList('post', query)
   .catch(error => console.error('Error:', error));
 ```
 
-## Performance Considerations
+For more information on filtering, see the [Advanced Filtering Guide](./advanced-filtering.md).
+
+## Performance Optimization
 
 1. Select only the fields you need to reduce response size and improve query performance.
 2. Be cautious with wildcard selections on large datasets or complex object structures.
 3. When selecting nested fields, consider the depth of the nesting and its impact on query performance.
+4. Use field selection in combination with pagination for large datasets:
+
+```javascript
+async function getAllPostTitles() {
+  let page = 1;
+  let allTitles = [];
+  let hasMorePages = true;
+
+  while (hasMorePages) {
+    const response = await flatlayer.getEntryList('post', {
+      fields: ['title'],
+      page,
+      perPage: 100
+    });
+    allTitles = allTitles.concat(response.data.map(post => post.title));
+    hasMorePages = response.current_page < response.last_page;
+    page++;
+  }
+
+  return allTitles;
+}
+
+getAllPostTitles()
+  .then(titles => console.log('All post titles:', titles))
+  .catch(error => console.error('Error fetching post titles:', error));
+```
+
+For more performance optimization techniques, see the [Advanced Usage Guide](./advanced.md).
 
 ## Error Handling
 
@@ -140,14 +170,64 @@ flatlayer.getEntryList('post', {
 })
   .then(response => console.log('Selected post fields:', response.data))
   .catch(error => {
-    if (error.message.includes('Invalid field selection')) {
-      console.error('Field selection error:', error.message);
+    if (error instanceof FlatlayerError) {
+      if (error.message.includes('Invalid field selection')) {
+        console.error('Field selection error:', error.message);
+      } else {
+        console.error('API Error:', error.message);
+      }
     } else {
-      console.error('An error occurred:', error.message);
+      console.error('An unexpected error occurred:', error.message);
     }
   });
 ```
 
+For more information on error handling, refer to the [Error Handling section](./advanced.md#error-handling) in the Advanced Usage Guide.
+
+## Combining Selection with Search
+
+You can use field selection in combination with search functionality:
+
+```javascript
+flatlayer.search('JavaScript', 'post', {
+  fields: ['title', 'excerpt', 'author.name'],
+  page: 1,
+  perPage: 20
+})
+  .then(results => {
+    console.log('Search results:', results.data);
+    console.log('Total results:', results.total);
+  })
+  .catch(error => console.error('Error performing search:', error));
+```
+
+For more information on search functionality, see the [Search Functionality Guide](./search.md).
+
+## Field Selection with Image Handling
+
+When working with image fields, you can select specific image attributes:
+
+```javascript
+const fields = ['title', 'featured_image.url', 'featured_image.alt'];
+
+flatlayer.getEntry('post', 'my-image-post', fields)
+  .then(post => {
+    console.log('Post title:', post.title);
+    console.log('Featured image URL:', post.featured_image.url);
+    console.log('Featured image alt text:', post.featured_image.alt);
+  })
+  .catch(error => console.error('Error:', error));
+```
+
+For more information on image handling, refer to the [Image Handling Guide](./image-handling.md).
+
 ## Conclusion
 
-The Flatlayer SDK's field selection capabilities provide a flexible way to retrieve precisely the data you need from your CMS. By mastering these selection techniques, you can optimize your queries for both performance and specificity. Remember to balance the complexity of your selections with performance considerations, and always implement proper error handling in your code.
+The Flatlayer SDK's field selection capabilities provide a flexible and powerful way to retrieve precisely the data you need from your CMS. By mastering these selection techniques, you can optimize your queries for both performance and specificity. Remember to balance the complexity of your selections with performance considerations, and always implement proper error handling in your code.
+
+For more advanced topics and best practices, refer to the following guides:
+- [Advanced Usage Guide](./advanced.md)
+- [Entry Retrieval Guide](./entry-retrieval.md)
+- [Advanced Filtering Guide](./advanced-filtering.md)
+- [Search Functionality Guide](./search.md)
+- [Image Handling Guide](./image-handling.md)

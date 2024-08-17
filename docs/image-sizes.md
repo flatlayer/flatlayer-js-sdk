@@ -2,7 +2,9 @@
 
 ## Introduction
 
-The `sizes` attribute is a powerful feature in the Flatlayer SDK that allows you to create responsive images that adapt to different screen sizes and layouts. This guide will help you understand how to use the `sizes` attribute effectively, especially in conjunction with Tailwind CSS and the `ResponsiveImage` component.
+The `sizes` attribute is a powerful feature in the Flatlayer SDK that enables the creation of truly responsive images adaptable to various screen sizes and layouts. This guide will help you understand how to use the `sizes` attribute effectively, especially in conjunction with Tailwind CSS and the `ResponsiveImage` component.
+
+For a deeper understanding of image handling in general, please refer to the [Image Handling Guide](./image-handling.md).
 
 ## Basic Concept
 
@@ -30,6 +32,8 @@ The Flatlayer SDK uses Tailwind-like breakpoints:
 - `lg`: 1024px
 - `xl`: 1280px
 - `2xl`: 1536px
+
+These breakpoints can be customized when initializing the `FlatlayerImage` instance. For more information on customization, see the [Advanced Usage Guide](./advanced.md).
 
 ## Examples
 
@@ -81,18 +85,20 @@ This could represent:
 When working with Tailwind, you'll often need to convert Tailwind classes to appropriate `sizes` values. Here are some common conversions:
 
 1. Padding:
-    - `p-4` (1rem = 16px) → Subtract 32px: `calc(100vw - 32px)`
-    - `p-6` (1.5rem = 24px) → Subtract 48px: `calc(100vw - 48px)`
+   - `p-4` (1rem = 16px) → Subtract 32px: `calc(100vw - 32px)`
+   - `p-6` (1.5rem = 24px) → Subtract 48px: `calc(100vw - 48px)`
 
 2. Container class:
-    - Instead of using `container`, calculate the max-width for each breakpoint
+   - Instead of using `container`, calculate the max-width for each breakpoint
 
 3. Columns:
-    - `w-1/2` → `50vw`
-    - `w-1/3` → `33.33vw`
-    - `w-1/4` → `25vw`
+   - `w-1/2` → `50vw`
+   - `w-1/3` → `33.33vw`
+   - `w-1/4` → `25vw`
 
 Remember to account for gaps in grid layouts by subtracting them from the viewport width.
+
+For more detailed information on calculating sizes, refer to the [Calculating Sizes Guide](./calculating-sizes.md).
 
 ## Using with ResponsiveImage
 
@@ -121,6 +127,54 @@ This setup creates a responsive image that:
 3. Takes up a third of the width minus 32px padding on medium screens
 4. Has a fixed width of 480px on large screens and above
 
+For more information on using Flatlayer with Svelte, see the [Svelte Integration Guide](./svelte.md).
+
+## Advanced Usage
+
+### Custom Breakpoints
+
+You can define custom breakpoints when creating a `FlatlayerImage` instance:
+
+```javascript
+const customBreakpoints = {
+  tablet: 768,
+  desktop: 1024,
+  widescreen: 1440
+};
+
+const flatlayerImage = flatlayer.createImage(imageData, {}, customBreakpoints);
+
+const sizes = ['100vw', 'tablet:50vw', 'desktop:33vw', 'widescreen:25vw'];
+const imgAttributes = flatlayerImage.generateImgAttributes(sizes);
+```
+
+### Dynamic Sizes
+
+You can generate sizes dynamically based on your application's state:
+
+```javascript
+function generateSizes(isSidebar) {
+  return isSidebar
+    ? ['100vw', 'md:50vw', 'lg:33vw']
+    : ['100vw', 'md:66vw', 'lg:50vw'];
+}
+
+const sizes = generateSizes(this.isSidebarOpen);
+const imgAttributes = flatlayerImage.generateImgAttributes(sizes);
+```
+
+## Performance Considerations
+
+1. **Optimize Image Delivery**: Use the `sizes` attribute in conjunction with `srcset` to ensure browsers download the most appropriate image size. The Flatlayer SDK handles this automatically when using `ResponsiveImage` or `generateImgAttributes`.
+
+2. **Lazy Loading**: Implement lazy loading for images below the fold to improve initial page load times. The `ResponsiveImage` component supports this out of the box.
+
+3. **Use WebP Format**: Leverage the WebP format for better compression when supported by the browser. You can specify this in the `defaultTransforms` when creating a `FlatlayerImage` instance.
+
+4. **Caching**: Implement appropriate caching strategies for your images. While this is typically handled at the server level, ensure your application doesn't unnecessarily invalidate the cache for static images.
+
+For more performance optimization techniques, see the [Advanced Usage Guide](./advanced.md).
+
 ## Best Practices
 
 1. **Start Mobile-First**: Always begin with the smallest size and work your way up.
@@ -137,8 +191,35 @@ This setup creates a responsive image that:
 
 7. **Document Your Choices**: When using complex `sizes` attributes, consider adding comments to explain the reasoning behind each breakpoint decision.
 
+## Error Handling
+
+When working with sizes, it's important to handle potential errors:
+
+```javascript
+try {
+  const imgAttributes = flatlayerImage.generateImgAttributes(sizes);
+  // Use imgAttributes...
+} catch (error) {
+  if (error instanceof FlatlayerError) {
+    console.error('Flatlayer Error:', error.message);
+    // Provide fallback sizes or error handling...
+  } else {
+    console.error('Unexpected error:', error.message);
+  }
+}
+```
+
+For more information on error handling, refer to the [Error Handling section](./advanced.md#error-handling) in the Advanced Usage Guide.
+
 ## Conclusion
 
 Mastering the `sizes` attribute in the Flatlayer SDK allows you to create truly responsive images that adapt seamlessly to various layouts and screen sizes. By combining this with Tailwind CSS principles and the `ResponsiveImage` component, you can ensure optimal performance and visual consistency across your application.
 
 Remember, the key to effective use of `sizes` is understanding your layout requirements and how they change across different breakpoints. With practice, you'll be able to craft precise and efficient responsive image solutions for any design scenario.
+
+For more information on related topics, check out these guides:
+- [Image Handling Guide](./image-handling.md)
+- [Calculating Sizes Guide](./calculating-sizes.md)
+- [Svelte Integration Guide](./svelte.md)
+- [Advanced Usage Guide](./advanced.md)
+- [Entry Retrieval Guide](./entry-retrieval.md)

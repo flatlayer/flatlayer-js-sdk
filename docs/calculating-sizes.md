@@ -285,6 +285,7 @@ sizes={[
 7. **Svelte Reactivity**: Remember that Svelte components can have reactive declarations that affect layout. Always check for reactive statements that might influence the image size.
 
 8. **Unit Limitations**: Always use only px and vw units, and calc() expressions containing these units. Do not use em, rem, or any other CSS units in the `sizes` attribute.
+
 ## Step-by-Step Process for Calculating Sizes
 
 This section outlines a systematic approach to calculating the `sizes` attribute for responsive images. By following these steps, you can reason through complex layouts and arrive at an accurate sizes value.
@@ -343,12 +344,6 @@ module.exports = {
         lg: '4rem',
       },
     },
-    extend: {
-      screens: {
-        'xl': '1280px',
-        '2xl': '1536px',
-      },
-    },
   },
   // ...
 }
@@ -356,7 +351,6 @@ module.exports = {
 
 Relevant extracted settings:
 - Container padding: 1rem (16px) by default, 2rem (32px) from 'sm' breakpoint, 4rem (64px) from 'lg' breakpoint
-- Custom breakpoints: xl at 1280px, 2xl at 1536px
 
 ### 3. Analyze Image Display Across Breakpoints
 
