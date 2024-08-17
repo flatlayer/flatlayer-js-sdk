@@ -1,10 +1,8 @@
-/**
- * A class for parsing markdown content with embedded components and fenced code blocks.
- */
+import { parse } from 'svelte/compiler';
+
 class MarkdownComponentParser {
     constructor() {
-        this.componentRegex = /<(\w+)([^>]*)(?:\/>|>([\s\S]*?)<\/\1>)/;
-        this.propRegex = /(\w+)(?:=(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|({(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*})))?/g;
+        this.componentRegex = /<([A-Z]\w+)([^>]*)(?:\/>|>([\s\S]*?)<\/\1>)/;
         this.codeBlockRegex = /^```[\s\S]*?^```/gm;
     }
 
@@ -30,11 +28,8 @@ class MarkdownComponentParser {
                 }
                 const [fullMatch, name, propsString, children] = componentMatch;
 
-                // Check if it's a paragraph with only text content
-                if (name === 'p' && !this.componentRegex.test(children)) {
-                    this.addMarkdownContent(result, children);
-                } else {
-                    const props = this.parseProps(propsString);
+                try {
+                    const props = this.parseComponentWithSvelte(fullMatch);
                     const parsedChildren = children ? this.parse(children) : null;
                     result.push({
                         type: 'component',
@@ -42,7 +37,11 @@ class MarkdownComponentParser {
                         props,
                         children: parsedChildren
                     });
+                } catch (error) {
+                    console.error('Failed to parse component:', fullMatch, error);
+                    this.addMarkdownContent(result, fullMatch);
                 }
+
                 input = input.slice(componentMatch.index + fullMatch.length);
             } else {
                 this.addMarkdownContent(result, input);
@@ -66,47 +65,61 @@ class MarkdownComponentParser {
         }
     }
 
-    parseProps(propsString) {
-        const props = {};
-        for (const match of propsString.matchAll(this.propRegex)) {
-            const [, key, doubleQuoted, singleQuoted, objectLiteral] = match;
-            let value;
-            if (objectLiteral) {
-                try {
-                    // Ensure we're parsing the entire object literal
-                    value = this.parseJSONLike(objectLiteral);
-                } catch (e) {
-                    console.warn(`Invalid object literal for ${key}:`, objectLiteral);
-                    value = objectLiteral;
-                }
-            } else if (doubleQuoted !== undefined) {
-                value = doubleQuoted;
-            } else if (singleQuoted !== undefined) {
-                value = singleQuoted;
-            } else {
-                value = true; // Boolean attribute
+    parseComponentWithSvelte(componentString) {
+        const ast = parse(componentString);
+
+        const htmlNode = ast.html;
+        if (htmlNode && htmlNode.children && htmlNode.children.length > 0) {
+            const componentNode = htmlNode.children[0];
+            const props = {};
+
+            if (componentNode.attributes) {
+                componentNode.attributes.forEach(attr => {
+                    if (attr.type === 'Attribute') {
+                        props[attr.name] = this.getAttributeValue(componentString, attr);
+                    }
+                });
             }
-            props[key] = value;
+
+            return props;
         }
-        return props;
+
+        return {};
     }
 
-    parseJSONLike(str) {
-        // Remove any leading/trailing whitespace
-        str = str.trim();
-        // Ensure the string starts and ends with curly braces
-        if (!str.startsWith('{') || !str.endsWith('}')) {
-            str = `{${str}}`;
+    getAttributeValue(componentString, attr) {
+        if (attr.value.length === 1) {
+            const value = attr.value[0];
+            if (value.type === 'Text') {
+                return value.data;
+            } else if (value.type === 'Expression') {
+                const rawValue = componentString.slice(value.start, value.end).trim();
+                return this.evaluateExpression(rawValue);
+            }
         }
-        return Function('"use strict";return (' + str + ')')();
+        // For complex values or multiple value nodes, return the raw expression
+        const start = attr.start + attr.name.length + 1; // +1 for the '='
+        const end = attr.end;
+        const rawValue = componentString.slice(start, end).trim();
+        return this.evaluateExpression(rawValue);
+    }
+
+    evaluateExpression(expression) {
+        // Remove curly braces if present
+        expression = expression.replace(/^\{|\}$/g, '').trim();
+
+        // Check if it's a simple number
+        if (/^-?\d+(\.\d+)?$/.test(expression)) {
+            return Number(expression);
+        }
+
+        // For other expressions, we'll return them as strings
+        // You might want to add more sophisticated evaluation here
+        // if you need to handle more complex expressions
+        return expression;
     }
 }
 
-/**
- * Parse the given markdown content with embedded components and fenced code blocks.
- * @param {string} input - The input markdown content to parse.
- * @returns {Array<Object>} An array of parsed content objects.
- */
 function parseContent(input) {
     const parser = new MarkdownComponentParser();
     return parser.parse(input);
