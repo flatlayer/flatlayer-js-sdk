@@ -5,66 +5,54 @@ class MarkdownComponentParser {
     constructor() {
         this.componentRegex = /<(\w+)([^>]*)(?:\/>|>([\s\S]*?)<\/\1>)/;
         this.propRegex = /(\w+)(?:=(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|({(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*})))?/g;
-        this.fencedCodeRegex = /^```(\w*)\n([\s\S]*?)^```/m;
+        this.codeBlockRegex = /^```[\s\S]*?^```/gm;
     }
 
-    /**
-     * Parse the input markdown content with embedded components and fenced code blocks.
-     * @param {string} input - The input markdown content to parse.
-     * @returns {Array<Object>} An array of parsed content objects.
-     */
     parse(input) {
         const result = [];
-        let remainingInput = input.trim();
+        const codeBlocks = [];
+        let lastIndex = 0;
 
-        while (remainingInput.length > 0) {
-            const codeMatch = this.fencedCodeRegex.exec(remainingInput);
-            const componentMatch = this.componentRegex.exec(remainingInput);
+        // First, identify all code blocks and replace them with placeholders
+        input = input.replace(this.codeBlockRegex, (match, offset) => {
+            codeBlocks.push(match);
+            lastIndex = offset + match.length;
+            return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
+        });
 
-            if (codeMatch && (!componentMatch || codeMatch.index < componentMatch.index)) {
-                // Process fenced code block
-                if (codeMatch.index > 0) {
-                    this.addMarkdownContent(result, remainingInput.slice(0, codeMatch.index));
-                }
-                result.push({
-                    type: 'markdown',
-                    content: codeMatch[0],
-                    codeBlocks: [{
-                        content: codeMatch[0],
-                        language: codeMatch[1] || null
-                    }]
-                });
-                remainingInput = remainingInput.slice(codeMatch.index + codeMatch[0].length).trim();
-            } else if (componentMatch) {
-                // Process component
+        // Now parse the content, treating code block placeholders as regular text
+        while (input.length > 0) {
+            const componentMatch = this.componentRegex.exec(input);
+
+            if (componentMatch) {
                 if (componentMatch.index > 0) {
-                    this.addMarkdownContent(result, remainingInput.slice(0, componentMatch.index));
+                    this.addMarkdownContent(result, input.slice(0, componentMatch.index));
                 }
                 const [fullMatch, name, propsString, children] = componentMatch;
                 const props = this.parseProps(propsString);
+                const parsedChildren = children ? this.parse(children) : null;
                 result.push({
                     type: 'component',
                     name,
                     props,
-                    children: children ? this.parse(children) : null
+                    children: parsedChildren
                 });
-                remainingInput = remainingInput.slice(componentMatch.index + fullMatch.length).trim();
+                input = input.slice(componentMatch.index + fullMatch.length);
             } else {
-                // No more matches, add remaining content as markdown
-                this.addMarkdownContent(result, remainingInput);
+                this.addMarkdownContent(result, input);
                 break;
             }
         }
 
-        return result;
+        // Replace code block placeholders with actual code blocks
+        return result.map(item => {
+            if (item.type === 'markdown') {
+                item.content = item.content.replace(/__CODE_BLOCK_(\d+)__/g, (_, index) => codeBlocks[parseInt(index)]);
+            }
+            return item;
+        });
     }
 
-    /**
-     * Add trimmed markdown content to the result array.
-     * @param {Array} result - The array to add the markdown content to.
-     * @param {string} content - The markdown content to add.
-     * @private
-     */
     addMarkdownContent(result, content) {
         const trimmedContent = content.trim();
         if (trimmedContent) {
@@ -72,12 +60,6 @@ class MarkdownComponentParser {
         }
     }
 
-    /**
-     * Parse the properties string of a component.
-     * @param {string} propsString - The string containing component properties.
-     * @returns {Object} An object containing parsed properties.
-     * @private
-     */
     parseProps(propsString) {
         const props = {};
         for (const match of propsString.matchAll(this.propRegex)) {
@@ -85,8 +67,7 @@ class MarkdownComponentParser {
             let value;
             if (objectLiteral) {
                 try {
-                    const trimmedLiteral = objectLiteral.replace(/^\{([\s\S]*)\}$/, '$1').trim();
-                    value = this.parseJSONLike(trimmedLiteral);
+                    value = JSON.parse(`{${objectLiteral}}`);
                 } catch (e) {
                     console.warn(`Invalid JSON in prop ${key}:`, objectLiteral);
                     value = objectLiteral;
@@ -101,16 +82,6 @@ class MarkdownComponentParser {
             props[key] = value;
         }
         return props;
-    }
-
-    /**
-     * Parse a JSON-like string into a JavaScript object.
-     * @param {string} str - The JSON-like string to parse.
-     * @returns {*} The parsed JavaScript object or value.
-     * @private
-     */
-    parseJSONLike(str) {
-        return Function('"use strict";return (' + str + ')')();
     }
 }
 

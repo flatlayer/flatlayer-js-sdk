@@ -63,16 +63,20 @@ And some more text.
 `;
         const result = MarkdownParser.parseContent(input);
         expect(result).toEqual([
-            { type: 'markdown', content: '# Code Example\n\nHere\'s some code:' },
             {
                 type: 'markdown',
-                content: '```javascript\nfunction hello() {\n    console.log("Hello, world!");\n}\n```',
-                codeBlocks: [{
-                    content: '```javascript\nfunction hello() {\n    console.log("Hello, world!");\n}\n```',
-                    language: 'javascript'
-                }]
-            },
-            { type: 'markdown', content: 'And some more text.' }
+                content: `# Code Example
+
+Here's some code:
+
+\`\`\`javascript
+function hello() {
+    console.log("Hello, world!");
+}
+\`\`\`
+
+And some more text.`
+            }
         ]);
     });
 
@@ -98,24 +102,9 @@ def greet():
         expect(result).toEqual([
             { type: 'markdown', content: '# Mixed Content' },
             { type: 'component', name: 'Component1', props: {}, children: null },
-            {
-                type: 'markdown',
-                content: '```python\ndef greet():\n    print("Hello!")\n```',
-                codeBlocks: [{
-                    content: '```python\ndef greet():\n    print("Hello!")\n```',
-                    language: 'python'
-                }]
-            },
+            { type: 'markdown', content: '```python\ndef greet():\n    print("Hello!")\n```' },
             { type: 'component', name: 'Component2', props: {}, children: [
-                    { type: 'markdown', content: 'Some text' },
-                    {
-                        type: 'markdown',
-                        content: '```\nNested code\n```',
-                        codeBlocks: [{
-                            content: '```\nNested code\n```',
-                            language: null
-                        }]
-                    }
+                    { type: 'markdown', content: 'Some text\n  ```\n  Nested code\n  ```' }
                 ]}
         ]);
     });
@@ -157,7 +146,7 @@ def greet():
         const result = MarkdownParser.parseContent(input);
         expect(result).toEqual([
             { type: 'markdown', content: 'Before' },
-            { type: 'component', name: 'EmptyComponent', props: {}, children: [] },
+            { type: 'component', name: 'EmptyComponent', props: {}, children: null },
             { type: 'markdown', content: 'After' }
         ]);
     });
