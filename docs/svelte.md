@@ -55,10 +55,16 @@ let imageData = {/* your image data */};
 - `displaySize` (optional): Intended display size as `[width, height]`.
 - `lazyLoad` (optional): Enable lazy loading of images. Default: `true`.
 - `blurRadius` (optional): Blur radius for the image placeholder. Default: `40`.
+- `fallbackSrc` (optional): URL of a fallback image to display if the main image fails to load.
+
+### Events
+
+- `on:load`: Dispatched when the image successfully loads.
+- `on:error`: Dispatched if there's an error loading the image.
 
 ### Advanced Example
 
-Here's an example demonstrating how to use the `ResponsiveImage` component with data fetched from Flatlayer:
+Here's an example demonstrating how to use the `ResponsiveImage` component with data fetched from Flatlayer, including error handling and fallback image:
 
 ```svelte
 <script>
@@ -68,6 +74,7 @@ import { env } from '$env/dynamic/public';
 import { flatlayer } from './your-flatlayer-instance';
 
 let post;
+let imageLoadError = false;
 
 onMount(async () => {
   post = await flatlayer.getEntry('post', 'my-awesome-post', ['title', 'featured_image']);
@@ -79,6 +86,15 @@ const customBreakpoints = {
   lg: 1024,
   xl: 1280
 };
+
+function handleImageError() {
+  imageLoadError = true;
+  console.error('Image failed to load');
+}
+
+function handleImageLoad() {
+  console.log('Image loaded successfully');
+}
 </script>
 
 {#if post}
@@ -93,7 +109,13 @@ const customBreakpoints = {
     isFluid={true}
     lazyLoad={true}
     blurRadius={20}
+    fallbackSrc="/path/to/fallback-image.jpg"
+    on:error={handleImageError}
+    on:load={handleImageLoad}
   />
+  {#if imageLoadError}
+    <p>Failed to load image. Displaying fallback.</p>
+  {/if}
 {/if}
 ```
 
@@ -243,6 +265,16 @@ After fetching and parsing the data on the server, you can use it in your Svelte
             blurRadius: 20
         }
     };
+
+    function handleImageError() {
+        console.error('Image failed to load');
+        // Additional error handling logic
+    }
+
+    function handleImageLoad() {
+        console.log('Image loaded successfully');
+        // Additional load handling logic
+    }
 </script>
 
 <svelte:head>
@@ -256,6 +288,9 @@ After fetching and parsing the data on the server, you can use it in your Svelte
             imageData={post.images.featured[0]}
             sizes={['100vw']}
             class="w-full h-auto rounded-xl shadow-sm mb-8"
+            fallbackSrc="/path/to/fallback-image.jpg"
+            on:error={handleImageError}
+            on:load={handleImageLoad}
         />
     {/if}
     <Markdown content={post.parsedContent} {components} {componentDefaults} />
@@ -300,10 +335,20 @@ onMount(async () => {
     console.error(err);
   }
 });
+
+function handleImageError() {
+  console.error('Image failed to load');
+  // Additional error handling logic
+}
 </script>
 
 {#if imageData}
-  <ResponsiveImage {imageData} sizes={['100vw']} />
+  <ResponsiveImage 
+    {imageData} 
+    sizes={['100vw']} 
+    fallbackSrc="/path/to/fallback-image.jpg"
+    on:error={handleImageError}
+  />
 {:else if error}
   <p class="error">{error}</p>
 {:else}
@@ -318,6 +363,9 @@ onMount(async () => {
 3. Leverage `defaultTransforms` to optimize image quality and format globally.
 4. Consider using `displaySize` for critical images to prevent layout shifts.
 5. Adjust the `blurRadius` to balance between a smooth loading experience and initial image clarity.
+6. Utilize the `fallbackSrc` prop to provide a backup image in case the primary image fails to load.
+7. Implement error handling using the `on:error` event to gracefully manage image loading failures.
+8. Use the `on:load` event to perform actions once the image has successfully loaded, if needed.
 
 ## Conclusion
 
