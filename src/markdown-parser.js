@@ -79,11 +79,29 @@ class MarkdownComponentParser {
     }
 
     evaluateExpression(expression) {
-        if (expression.type === 'Literal') {
-            return expression.value;
+        switch (expression.type) {
+            case 'Literal':
+                return expression.value;
+            case 'Identifier':
+                return expression.name;
+            case 'ObjectExpression':
+                return this.evaluateObjectExpression(expression);
+            case 'ArrayExpression':
+                return expression.elements.map(elem => this.evaluateExpression(elem));
+            default:
+                // For other expressions, return as string
+                return expression.raw;
         }
-        // For other expressions, return as string
-        return expression.raw;
+    }
+
+    evaluateObjectExpression(objExpr) {
+        const result = {};
+        for (const prop of objExpr.properties) {
+            const key = this.evaluateExpression(prop.key);
+            const value = this.evaluateExpression(prop.value);
+            result[key] = value;
+        }
+        return result;
     }
 
     processText(node) {
