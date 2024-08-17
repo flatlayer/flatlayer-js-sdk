@@ -1,3 +1,5 @@
+import { thumbHashToDataURL } from 'thumbhash';
+
 /**
  * FlatlayerImage class
  * Handles the generation of responsive image attributes and URLs.
@@ -20,8 +22,8 @@ class FlatlayerImage {
         this.baseUrl = baseUrl;
         this.imageData = imageData;
         this.defaultTransforms = defaultTransforms;
-        this.defaultQuality = defaultTransforms.q || 80; // Store default quality separately
-        delete this.defaultTransforms.q; // Remove quality from default transforms
+        this.defaultQuality = defaultTransforms.q || 80;
+        delete this.defaultTransforms.q;
         this.breakpoints = breakpoints || {
             sm: 640,
             md: 768,
@@ -290,6 +292,22 @@ class FlatlayerImage {
 
         const queryParams = new URLSearchParams(allTransforms).toString();
         return `${this.imageEndpoint}/${this.imageData.id}.${extension}${queryParams ? `?${queryParams}` : ''}`;
+    }
+
+    /**
+     * Get the thumbhash data URL for the image.
+     * @returns {string} The data URL for the thumbhash, or an empty string if no thumbhash is available.
+     */
+    getThumbhashDataUrl() {
+        if (!this._thumbhashDataUrl) {
+            if (this.imageData.thumbhash) {
+                const thumbhashBytes = atob(this.imageData.thumbhash).split('').map(c => c.charCodeAt(0));
+                this._thumbhashDataUrl = thumbHashToDataURL(new Uint8Array(thumbhashBytes));
+            } else {
+                this._thumbhashDataUrl = '';
+            }
+        }
+        return this._thumbhashDataUrl;
     }
 }
 

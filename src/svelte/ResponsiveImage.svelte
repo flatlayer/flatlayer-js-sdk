@@ -1,10 +1,9 @@
 <script>
     import FlatlayerImage from '../flatlayer-image';
-    import {thumbHashToDataURL} from 'thumbhash';
-    import {onMount} from 'svelte';
-    import {PUBLIC_FLATLAYER_ENDPOINT} from "$env/static/public";
+    import { onMount, createEventDispatcher } from 'svelte';
+    import { PUBLIC_FLATLAYER_ENDPOINT } from "$env/static/public";
 
-    // Props for original usage
+    // Props
     export let baseUrl = PUBLIC_FLATLAYER_ENDPOINT;
     export let imageData = undefined;
     export let defaultTransforms = {};
@@ -16,16 +15,21 @@
     export let displaySize = false;
     export let lazyLoad = true;
     export let blurRadius = 40;
-
     export let alt = undefined;
     export let title = undefined;
+    export let fallbackSrc = undefined;
 
+    // Local state
     let flatlayerImage;
     let imgAttributes;
     let imageLoaded = false;
     let shouldAnimate = false;
     let willAnimate = false;
     let imageElement;
+    let thumbhashUrl = '';
+    let error = false;
+
+    const dispatch = createEventDispatcher();
 
     $: {
         if (imageData) {
@@ -36,6 +40,7 @@
                 breakpoints,
                 imageEndpoint
             );
+            thumbhashUrl = flatlayerImage.getThumbhashDataUrl();
         }
     }
 
@@ -51,22 +56,22 @@
         );
     }
 
-    function getThumbhashUrl(thumbhash) {
-        if (!thumbhash) return '';
-        const thumbhashBytes = atob(thumbhash).split('').map(c => c.charCodeAt(0));
-        return thumbHashToDataURL(new Uint8Array(thumbhashBytes));
+    function handleImageLoad() {
+        imageLoaded = true;
+        if (shouldAnimate) {
+            willAnimate = false;
+        }
+        dispatch('load');
     }
 
-    // Update the Thumbhash URL
-    let thumbhashUrl = '';
-    $: if (imageData && imageData.thumbhash) {
-        thumbhashUrl = getThumbhashUrl(imageData.thumbhash);
-    } else {
-        thumbhashUrl = '';
+    function handleImageError() {
+        error = true;
+        dispatch('error');
     }
+
     onMount(() => {
         if (imageElement.complete) {
-            imageLoaded = true;
+            handleImageLoad();
         } else {
             const loadTimeout = setTimeout(() => {
                 if (!imageLoaded) {
@@ -77,12 +82,18 @@
 
             imageElement.onload = () => {
                 clearTimeout(loadTimeout);
-                imageLoaded = true;
-                if (shouldAnimate) {
-                    willAnimate = false;
-                }
+                handleImageLoad();
             };
+
+            imageElement.onerror = handleImageError;
         }
+
+        return () => {
+            if (imageElement) {
+                imageElement.onload = null;
+                imageElement.onerror = null;
+            }
+        };
     });
 </script>
 
@@ -96,8 +107,17 @@
                 class:imageLoaded
                 class:will-animate={willAnimate}
                 class:animate={imageLoaded && shouldAnimate}
+                on:load={handleImageLoad}
+                on:error={handleImageError}
                 bind:this={imageElement}
         />
+        {#if error && fallbackSrc}
+            <img
+                    src={fallbackSrc}
+                    alt={alt || "Fallback image"}
+                    class="fallback-image"
+            />
+        {/if}
     </div>
 {/if}
 
@@ -125,6 +145,15 @@
 
     .animate {
         animation: fadeInBlurOut 0.3s ease-in-out forwards;
+    }
+
+    .fallback-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 
     @keyframes fadeInBlurOut {
