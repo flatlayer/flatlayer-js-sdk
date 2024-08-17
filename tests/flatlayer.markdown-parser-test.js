@@ -131,16 +131,101 @@ More text.`;
         });
     });
 
-    // The parseProps tests remain unchanged as they don't involve content trimming
-
     describe('parseProps', () => {
-        // ... (keep existing parseProps tests unchanged)
+        it('should parse string props', () => {
+            const propsString = 'prop1="value1" prop2=\'value2\'';
+            const result = parser.parseProps(propsString);
+            expect(result).toEqual({ prop1: 'value1', prop2: 'value2' });
+        });
+
+        it('should parse number props', () => {
+            const propsString = 'prop1={42} prop2={3.14}';
+            const result = parser.parseProps(propsString);
+            expect(result).toEqual({ prop1: 42, prop2: 3.14 });
+        });
+
+        it('should parse boolean props', () => {
+            const propsString = 'prop1={true} prop2={false} prop3';
+            const result = parser.parseProps(propsString);
+            expect(result).toEqual({ prop1: true, prop2: false, prop3: true });
+        });
+
+        it('should parse object props', () => {
+            const propsString = 'prop1={{"key": "value"}} prop2={{nested: {foo: "bar"}}}';
+            const result = parser.parseProps(propsString);
+            expect(result).toEqual({
+                prop1: {"key": "value"},
+                prop2: {nested: {foo: "bar"}}
+            });
+        });
+
+        it('should parse array props', () => {
+            const propsString = 'prop1={[1, 2, 3]} prop2={["a", "b", "c"]}';
+            const result = parser.parseProps(propsString);
+            expect(result).toEqual({
+                prop1: [1, 2, 3],
+                prop2: ["a", "b", "c"]
+            });
+        });
+
+        it('should handle invalid JSON in props', () => {
+            const propsString = 'prop1={invalid json} prop2="valid"';
+            const result = parser.parseProps(propsString);
+            expect(result).toEqual({
+                prop1: '{invalid json}',
+                prop2: "valid"
+            });
+        });
+
+        it('should handle mixed prop types', () => {
+            const propsString = 'str="hello" num={42} bool={true} obj={{"key": "value"}} arr={[1,2,3]}';
+            const result = parser.parseProps(propsString);
+            expect(result).toEqual({
+                str: "hello",
+                num: 42,
+                bool: true,
+                obj: {"key": "value"},
+                arr: [1,2,3]
+            });
+        });
+
+        it('should handle props with spaces in values', () => {
+            const propsString = 'prop1="value with spaces" prop2=\'another spaced value\'';
+            const result = parser.parseProps(propsString);
+            expect(result).toEqual({
+                prop1: "value with spaces",
+                prop2: "another spaced value"
+            });
+        });
+
+        it('should handle props with escaped quotes', () => {
+            const propsString = 'prop1="value \\"quoted\\"" prop2=\'value \\\'quoted\\\'\'';
+            const result = parser.parseProps(propsString);
+            expect(result).toEqual({
+                prop1: 'value "quoted"',
+                prop2: "value 'quoted'"
+            });
+        });
+
+        it('should handle props with line breaks', () => {
+            const propsString = `
+            prop1="multi
+            line"
+            prop2={{
+                key: "value"
+            }}
+        `;
+            const result = parser.parseProps(propsString);
+            expect(result).toEqual({
+                prop1: "multi\n            line",
+                prop2: {key: "value"}
+            });
+        });
     });
 });
 
 describe('parseContent function', () => {
-    it('should use MarkdownComponentParser to parse content', () => {
-        const input = 'Text <Component prop="value" /> More text';
+    it('should use MarkdownComponentParser to parse content', () => {        const input = 'Text <Component prop="value" /> More text';
         const result = MarkdownParser.parseContent(input);
         expect(result).toEqual([
             { type: 'markdown', content: 'Text' },
