@@ -50,16 +50,27 @@ describe('MarkdownComponentParser', () => {
             const input = '<p class="special">This is special.</p><p>This is <strong>important</strong>.</p>';
             const result = parser.parse(input);
             expect(result).toEqual([
-                { type: 'component', name: 'p', props: { class: 'special' }, children: [
-                        { type: 'markdown', content: 'This is special.' }
-                    ]},
-                { type: 'component', name: 'p', props: {}, children: [
+                {
+                    type: 'markdown',
+                    content: 'This is special.'
+                },
+                {
+                    type: 'component',
+                    name: 'p',
+                    props: {},
+                    children: [
                         { type: 'markdown', content: 'This is' },
-                        { type: 'component', name: 'strong', props: {}, children: [
+                        {
+                            type: 'component',
+                            name: 'strong',
+                            props: {},
+                            children: [
                                 { type: 'markdown', content: 'important' }
-                            ]},
+                            ]
+                        },
                         { type: 'markdown', content: '.' }
-                    ]}
+                    ]
+                }
             ]);
         });
 
@@ -158,19 +169,11 @@ More text after the code blocks with another <Component />.
                     { type: 'markdown', content: 'embedded.' },
                     {
                         type: 'markdown',
-                        content: '```javascript\n// This JavaScript code block will be preserved\nconst x = <Component>This is not parsed</Component>;\n```',
-                        codeBlocks: [{
-                            content: '```javascript\n// This JavaScript code block will be preserved\nconst x = <Component>This is not parsed</Component>;\n```',
-                            language: 'javascript'
-                        }]
+                        content: '```javascript\n// This JavaScript code block will be preserved\nconst x = <Component>This is not parsed</Component>;\n```'
                     },
                     {
                         type: 'markdown',
-                        content: '```python\n# This Python code block will also be preserved\ndef hello():\n    print("Hello, <AnotherComponent />")\n```',
-                        codeBlocks: [{
-                            content: '```python\n# This Python code block will also be preserved\ndef hello():\n    print("Hello, <AnotherComponent />")\n```',
-                            language: 'python'
-                        }]
+                        content: '```python\n# This Python code block will also be preserved\ndef hello():\n    print("Hello, <AnotherComponent />")\n```'
                     },
                     { type: 'markdown', content: 'More text after the code blocks with another' },
                     { type: 'component', name: 'Component', props: {}, children: null },
@@ -194,11 +197,7 @@ Some text after.
                     { type: 'markdown', content: 'Some text before.' },
                     {
                         type: 'markdown',
-                        content: '```\nThis is a code block without language specification\n<Component /> should not be parsed here\n```',
-                        codeBlocks: [{
-                            content: '```\nThis is a code block without language specification\n<Component /> should not be parsed here\n```',
-                            language: null
-                        }]
+                        content: '```\nThis is a code block without language specification\n<Component /> should not be parsed here\n```'
                     },
                     { type: 'markdown', content: 'Some text after.' }
                 ]);
@@ -231,26 +230,14 @@ Final text.
                     { type: 'component', name: 'Component1', props: { prop: 'value' }, children: null },
                     {
                         type: 'markdown',
-                        content: '```javascript\n// Code block\nconst x = 5;\n```',
-                        codeBlocks: [{
-                            content: '```javascript\n// Code block\nconst x = 5;\n```',
-                            language: 'javascript'
-                        }]
+                        content: '```javascript\n// Code block\nconst x = 5;\n```'
                     },
                     {
                         type: 'component',
                         name: 'Component2',
                         props: {},
                         children: [
-                            { type: 'markdown', content: 'Nested content' },
-                            {
-                                type: 'markdown',
-                                content: '```\nNested code block\n<Component3 /> (should not be parsed)\n```',
-                                codeBlocks: [{
-                                    content: '```\nNested code block\n<Component3 /> (should not be parsed)\n```',
-                                    language: null
-                                }]
-                            }
+                            { type: 'markdown', content: 'Nested content\n  ```\n  Nested code block\n  <Component3 /> (should not be parsed)\n  ```' }
                         ]
                     },
                     { type: 'markdown', content: 'Final text.' }

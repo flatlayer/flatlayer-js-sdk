@@ -4,17 +4,19 @@
 class MarkdownComponentParser {
     constructor() {
         this.componentRegex = /<(\w+)([^>]*)(?:\/>|>([\s\S]*?)<\/\1>)/;
-        this.propRegex = /(\w+)(?:=(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|(\{[^}]*\})|([^{}\s]+)))?/g;
+        this.propRegex = /(\w+)(?:=(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|({(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*})))?/g;
         this.codeBlockRegex = /^```[\s\S]*?^```/gm;
     }
 
     parse(input) {
         const result = [];
         const codeBlocks = [];
+        let lastIndex = 0;
 
         // First, identify all code blocks and replace them with placeholders
-        input = input.replace(this.codeBlockRegex, (match) => {
+        input = input.replace(this.codeBlockRegex, (match, offset) => {
             codeBlocks.push(match);
+            lastIndex = offset + match.length;
             return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
         });
 
@@ -27,14 +29,20 @@ class MarkdownComponentParser {
                     this.addMarkdownContent(result, input.slice(0, componentMatch.index));
                 }
                 const [fullMatch, name, propsString, children] = componentMatch;
-                const props = this.parseProps(propsString);
-                const parsedChildren = children ? this.parse(children) : null;
-                result.push({
-                    type: 'component',
-                    name,
-                    props,
-                    children: parsedChildren
-                });
+
+                // Check if it's a paragraph with only text content
+                if (name === 'p' && !this.componentRegex.test(children)) {
+                    this.addMarkdownContent(result, children);
+                } else {
+                    const props = this.parseProps(propsString);
+                    const parsedChildren = children ? this.parse(children) : null;
+                    result.push({
+                        type: 'component',
+                        name,
+                        props,
+                        children: parsedChildren
+                    });
+                }
                 input = input.slice(componentMatch.index + fullMatch.length);
             } else {
                 this.addMarkdownContent(result, input);
@@ -60,42 +68,37 @@ class MarkdownComponentParser {
 
     parseProps(propsString) {
         const props = {};
-        let match;
-
-        while ((match = this.propRegex.exec(propsString)) !== null) {
-            const [, key, doubleQuoted, singleQuoted, objectLiteral, unquotedValue] = match;
+        for (const match of propsString.matchAll(this.propRegex)) {
+            const [, key, doubleQuoted, singleQuoted, objectLiteral] = match;
             let value;
-
-            if (doubleQuoted !== undefined) {
-                value = doubleQuoted;
-            } else if (singleQuoted !== undefined) {
-                value = singleQuoted;
-            } else if (objectLiteral !== undefined) {
+            if (objectLiteral) {
                 try {
-                    const trimmedLiteral = objectLiteral.slice(1, -1).trim();
-                    value = Function(`"use strict";return (${trimmedLiteral})`)();
+                    // Ensure we're parsing the entire object literal
+                    value = this.parseJSONLike(objectLiteral);
                 } catch (e) {
                     console.warn(`Invalid object literal for ${key}:`, objectLiteral);
                     value = objectLiteral;
                 }
-            } else if (unquotedValue !== undefined) {
-                if (unquotedValue === 'true') {
-                    value = true;
-                } else if (unquotedValue === 'false') {
-                    value = false;
-                } else if (!isNaN(unquotedValue)) {
-                    value = Number(unquotedValue);
-                } else {
-                    value = unquotedValue;
-                }
+            } else if (doubleQuoted !== undefined) {
+                value = doubleQuoted;
+            } else if (singleQuoted !== undefined) {
+                value = singleQuoted;
             } else {
-                value = true;
+                value = true; // Boolean attribute
             }
-
             props[key] = value;
         }
-
         return props;
+    }
+
+    parseJSONLike(str) {
+        // Remove any leading/trailing whitespace
+        str = str.trim();
+        // Ensure the string starts and ends with curly braces
+        if (!str.startsWith('{') || !str.endsWith('}')) {
+            str = `{${str}}`;
+        }
+        return Function('"use strict";return (' + str + ')')();
     }
 }
 
