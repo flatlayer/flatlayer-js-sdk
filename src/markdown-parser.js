@@ -4,19 +4,17 @@
 class MarkdownComponentParser {
     constructor() {
         this.componentRegex = /<(\w+)([^>]*)(?:\/>|>([\s\S]*?)<\/\1>)/;
-        this.propRegex = /(\w+)(?:=(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|({(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*})))?/g;
+        this.propRegex = /(\w+)(?:=(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|(\{[^}]*\})|([^{}\s]+)))?/g;
         this.codeBlockRegex = /^```[\s\S]*?^```/gm;
     }
 
     parse(input) {
         const result = [];
         const codeBlocks = [];
-        let lastIndex = 0;
 
         // First, identify all code blocks and replace them with placeholders
-        input = input.replace(this.codeBlockRegex, (match, offset) => {
+        input = input.replace(this.codeBlockRegex, (match) => {
             codeBlocks.push(match);
-            lastIndex = offset + match.length;
             return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
         });
 
@@ -62,25 +60,41 @@ class MarkdownComponentParser {
 
     parseProps(propsString) {
         const props = {};
-        for (const match of propsString.matchAll(this.propRegex)) {
-            const [, key, doubleQuoted, singleQuoted, objectLiteral] = match;
+        let match;
+
+        while ((match = this.propRegex.exec(propsString)) !== null) {
+            const [, key, doubleQuoted, singleQuoted, objectLiteral, unquotedValue] = match;
             let value;
-            if (objectLiteral) {
-                try {
-                    value = JSON.parse(`{${objectLiteral}}`);
-                } catch (e) {
-                    console.warn(`Invalid JSON in prop ${key}:`, objectLiteral);
-                    value = objectLiteral;
-                }
-            } else if (doubleQuoted !== undefined) {
+
+            if (doubleQuoted !== undefined) {
                 value = doubleQuoted;
             } else if (singleQuoted !== undefined) {
                 value = singleQuoted;
+            } else if (objectLiteral !== undefined) {
+                try {
+                    const trimmedLiteral = objectLiteral.slice(1, -1).trim();
+                    value = Function(`"use strict";return (${trimmedLiteral})`)();
+                } catch (e) {
+                    console.warn(`Invalid object literal for ${key}:`, objectLiteral);
+                    value = objectLiteral;
+                }
+            } else if (unquotedValue !== undefined) {
+                if (unquotedValue === 'true') {
+                    value = true;
+                } else if (unquotedValue === 'false') {
+                    value = false;
+                } else if (!isNaN(unquotedValue)) {
+                    value = Number(unquotedValue);
+                } else {
+                    value = unquotedValue;
+                }
             } else {
-                value = true; // Boolean attribute
+                value = true;
             }
+
             props[key] = value;
         }
+
         return props;
     }
 }
