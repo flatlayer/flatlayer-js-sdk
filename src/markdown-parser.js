@@ -1,75 +1,75 @@
 /**
- * A class for parsing markdown content with embedded components.
+ * A class for parsing markdown content with embedded components and fenced code blocks.
  */
 class MarkdownComponentParser {
     constructor() {
-        /**
-         * Regular expression for matching components in the markdown.
-         * @type {RegExp}
-         * @private
-         */
-        this.componentRegex = /<(\w+)([^>]*)(?:\/>|>([\s\S]*?)<\/\1>)/g;
-
-        /**
-         * Regular expression for parsing component properties.
-         * @type {RegExp}
-         * @private
-         */
+        this.componentRegex = /<(\w+)([^>]*)(?:\/>|>([\s\S]*?)<\/\1>)/;
         this.propRegex = /(\w+)(?:=(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|({(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*})))?/g;
+        this.fencedCodeRegex = /^```(\w*)\n([\s\S]*?)^```/m;
     }
 
     /**
-     * Parse the input markdown content with embedded components.
+     * Parse the input markdown content with embedded components and fenced code blocks.
      * @param {string} input - The input markdown content to parse.
      * @returns {Array<Object>} An array of parsed content objects.
      */
     parse(input) {
         const result = [];
-        let lastIndex = 0;
-        for (const match of input.matchAll(this.componentRegex)) {
-            if (match.index > lastIndex) {
-                const content = input.slice(lastIndex, match.index).trim();
-                if (content) {
-                    result.push({ type: 'markdown', content });
-                }
-            }
-            const [fullMatch, name, propsString, children] = match;
-            const props = this.parseProps(propsString);
-            let parsedChildren = children ? this.parse(children.trim()) : null;
+        let remainingInput = input.trim();
 
-            // Special case for paragraph tags
-            if (name === 'p') {
-                if (Object.keys(props).length === 0 && // No attributes
-                    parsedChildren &&
-                    parsedChildren.length === 1 &&
-                    parsedChildren[0].type === 'markdown' &&
-                    !/<\w+/.test(parsedChildren[0].content)) { // No nested tags
-                    result.push(parsedChildren[0]);
-                } else {
-                    result.push({
-                        type: 'component',
-                        name,
-                        props,
-                        children: parsedChildren
-                    });
+        while (remainingInput.length > 0) {
+            const codeMatch = this.fencedCodeRegex.exec(remainingInput);
+            const componentMatch = this.componentRegex.exec(remainingInput);
+
+            if (codeMatch && (!componentMatch || codeMatch.index < componentMatch.index)) {
+                // Process fenced code block
+                if (codeMatch.index > 0) {
+                    this.addMarkdownContent(result, remainingInput.slice(0, codeMatch.index));
                 }
-            } else {
+                result.push({
+                    type: 'markdown',
+                    content: codeMatch[0],
+                    codeBlocks: [{
+                        content: codeMatch[0],
+                        language: codeMatch[1] || null
+                    }]
+                });
+                remainingInput = remainingInput.slice(codeMatch.index + codeMatch[0].length).trim();
+            } else if (componentMatch) {
+                // Process component
+                if (componentMatch.index > 0) {
+                    this.addMarkdownContent(result, remainingInput.slice(0, componentMatch.index));
+                }
+                const [fullMatch, name, propsString, children] = componentMatch;
+                const props = this.parseProps(propsString);
                 result.push({
                     type: 'component',
                     name,
                     props,
-                    children: parsedChildren
+                    children: children ? this.parse(children) : null
                 });
-            }
-            lastIndex = match.index + fullMatch.length;
-        }
-        if (lastIndex < input.length) {
-            const content = input.slice(lastIndex).trim();
-            if (content) {
-                result.push({ type: 'markdown', content });
+                remainingInput = remainingInput.slice(componentMatch.index + fullMatch.length).trim();
+            } else {
+                // No more matches, add remaining content as markdown
+                this.addMarkdownContent(result, remainingInput);
+                break;
             }
         }
+
         return result;
+    }
+
+    /**
+     * Add trimmed markdown content to the result array.
+     * @param {Array} result - The array to add the markdown content to.
+     * @param {string} content - The markdown content to add.
+     * @private
+     */
+    addMarkdownContent(result, content) {
+        const trimmedContent = content.trim();
+        if (trimmedContent) {
+            result.push({ type: 'markdown', content: trimmedContent });
+        }
     }
 
     /**
@@ -115,7 +115,7 @@ class MarkdownComponentParser {
 }
 
 /**
- * Parse the given markdown content with embedded components.
+ * Parse the given markdown content with embedded components and fenced code blocks.
  * @param {string} input - The input markdown content to parse.
  * @returns {Array<Object>} An array of parsed content objects.
  */

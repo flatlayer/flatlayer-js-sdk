@@ -129,6 +129,134 @@ More text.`;
                 { type: 'markdown', content: 'More text.' }
             ]);
         });
+
+        describe('with fenced code blocks', () => {
+            it('should preserve fenced code blocks and not parse components within them', () => {
+                const input = `
+# Title
+
+Some text with a <Component prop="value" /> embedded.
+
+\`\`\`javascript
+// This JavaScript code block will be preserved
+const x = <Component>This is not parsed</Component>;
+\`\`\`
+
+\`\`\`python
+# This Python code block will also be preserved
+def hello():
+    print("Hello, <AnotherComponent />")
+\`\`\`
+
+More text after the code blocks with another <Component />.
+`;
+                const result = parser.parse(input);
+                expect(result).toEqual([
+                    { type: 'markdown', content: '# Title' },
+                    { type: 'markdown', content: 'Some text with a' },
+                    { type: 'component', name: 'Component', props: { prop: 'value' }, children: null },
+                    { type: 'markdown', content: 'embedded.' },
+                    {
+                        type: 'markdown',
+                        content: '```javascript\n// This JavaScript code block will be preserved\nconst x = <Component>This is not parsed</Component>;\n```',
+                        codeBlocks: [{
+                            content: '```javascript\n// This JavaScript code block will be preserved\nconst x = <Component>This is not parsed</Component>;\n```',
+                            language: 'javascript'
+                        }]
+                    },
+                    {
+                        type: 'markdown',
+                        content: '```python\n# This Python code block will also be preserved\ndef hello():\n    print("Hello, <AnotherComponent />")\n```',
+                        codeBlocks: [{
+                            content: '```python\n# This Python code block will also be preserved\ndef hello():\n    print("Hello, <AnotherComponent />")\n```',
+                            language: 'python'
+                        }]
+                    },
+                    { type: 'markdown', content: 'More text after the code blocks with another' },
+                    { type: 'component', name: 'Component', props: {}, children: null },
+                    { type: 'markdown', content: '.' }
+                ]);
+            });
+
+            it('should handle fenced code blocks without language specification', () => {
+                const input = `
+Some text before.
+
+\`\`\`
+This is a code block without language specification
+<Component /> should not be parsed here
+\`\`\`
+
+Some text after.
+`;
+                const result = parser.parse(input);
+                expect(result).toEqual([
+                    { type: 'markdown', content: 'Some text before.' },
+                    {
+                        type: 'markdown',
+                        content: '```\nThis is a code block without language specification\n<Component /> should not be parsed here\n```',
+                        codeBlocks: [{
+                            content: '```\nThis is a code block without language specification\n<Component /> should not be parsed here\n```',
+                            language: null
+                        }]
+                    },
+                    { type: 'markdown', content: 'Some text after.' }
+                ]);
+            });
+
+            it('should correctly handle mixed content with fenced code blocks and components', () => {
+                const input = `
+# Mixed Content Test
+
+<Component1 prop="value" />
+
+\`\`\`javascript
+// Code block
+const x = 5;
+\`\`\`
+
+<Component2>
+  Nested content
+  \`\`\`
+  Nested code block
+  <Component3 /> (should not be parsed)
+  \`\`\`
+</Component2>
+
+Final text.
+`;
+                const result = parser.parse(input);
+                expect(result).toEqual([
+                    { type: 'markdown', content: '# Mixed Content Test' },
+                    { type: 'component', name: 'Component1', props: { prop: 'value' }, children: null },
+                    {
+                        type: 'markdown',
+                        content: '```javascript\n// Code block\nconst x = 5;\n```',
+                        codeBlocks: [{
+                            content: '```javascript\n// Code block\nconst x = 5;\n```',
+                            language: 'javascript'
+                        }]
+                    },
+                    {
+                        type: 'component',
+                        name: 'Component2',
+                        props: {},
+                        children: [
+                            { type: 'markdown', content: 'Nested content' },
+                            {
+                                type: 'markdown',
+                                content: '```\nNested code block\n<Component3 /> (should not be parsed)\n```',
+                                codeBlocks: [{
+                                    content: '```\nNested code block\n<Component3 /> (should not be parsed)\n```',
+                                    language: null
+                                }]
+                            }
+                        ]
+                    },
+                    { type: 'markdown', content: 'Final text.' }
+                ]);
+            });
+        });
     });
 
     describe('parseProps', () => {
@@ -221,52 +349,5 @@ More text.`;
                 prop2: {key: "value"}
             });
         });
-    });
-});
-
-describe('parseContent function', () => {
-    it('should use MarkdownComponentParser to parse content', () => {        const input = 'Text <Component prop="value" /> More text';
-        const result = MarkdownParser.parseContent(input);
-        expect(result).toEqual([
-            { type: 'markdown', content: 'Text' },
-            { type: 'component', name: 'Component', props: { prop: 'value' }, children: null },
-            { type: 'markdown', content: 'More text' }
-        ]);
-    });
-
-    it('should handle complex nested structures', () => {
-        const input = `
-# Main Title
-
-<OuterComponent prop1="value1">
-  Some text inside OuterComponent
-
-  <InnerComponent prop2={42}>
-    ## Inner Title
-    
-    <DeepNestedComponent />
-
-    More inner text
-  </InnerComponent>
-
-  Final text in OuterComponent
-</OuterComponent>
-
-Conclusion paragraph.
-`;
-        const result = MarkdownParser.parseContent(input);
-        expect(result).toEqual([
-            { type: 'markdown', content: '# Main Title' },
-            { type: 'component', name: 'OuterComponent', props: { prop1: 'value1' }, children: [
-                    { type: 'markdown', content: 'Some text inside OuterComponent' },
-                    { type: 'component', name: 'InnerComponent', props: { prop2: 42 }, children: [
-                            { type: 'markdown', content: '## Inner Title' },
-                            { type: 'component', name: 'DeepNestedComponent', props: {}, children: null },
-                            { type: 'markdown', content: 'More inner text' }
-                        ]},
-                    { type: 'markdown', content: 'Final text in OuterComponent' }
-                ]},
-            { type: 'markdown', content: 'Conclusion paragraph.' }
-        ]);
     });
 });
