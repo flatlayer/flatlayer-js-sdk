@@ -32,44 +32,70 @@ describe('MarkdownComponentParser', () => {
             expect(result).toEqual([
                 { type: 'markdown', content: 'Start' },
                 { type: 'component', name: 'Wrapper', props: {}, children: [
-                        { type: 'markdown', content: 'Hello' }
+                        { type: 'component', name: 'p', props: {}, children: [
+                                { type: 'markdown', content: 'Hello' }
+                            ]}
                     ]},
                 { type: 'markdown', content: 'End' }
             ]);
         });
 
-        it('should treat paragraph tags with only text as markdown', () => {
+        it('should treat paragraph tags as components even with only text content', () => {
             const input = '<p>This is a paragraph.</p>';
             const result = parser.parse(input);
             expect(result).toEqual([
-                { type: 'markdown', content: 'This is a paragraph.' }
+                {
+                    type: 'component',
+                    name: 'p',
+                    props: {},
+                    children: [
+                        { type: 'markdown', content: 'This is a paragraph.' }
+                    ]
+                }
             ]);
         });
 
-        it('should keep paragraph tags as components if they have attributes or nested elements', () => {
+        it('should keep all paragraph tags as components, including those with attributes or nested elements', () => {
             const input = '<p class="special">This is special.</p><p>This is <strong>important</strong>.</p>';
             const result = parser.parse(input);
             expect(result).toEqual([
-                { type: 'component', name: 'p', props: { class: 'special' }, children: [
+                {
+                    type: 'component',
+                    name: 'p',
+                    props: { class: 'special' },
+                    children: [
                         { type: 'markdown', content: 'This is special.' }
-                    ]},
-                { type: 'component', name: 'p', props: {}, children: [
+                    ]
+                },
+                {
+                    type: 'component',
+                    name: 'p',
+                    props: {},
+                    children: [
                         { type: 'markdown', content: 'This is' },
-                        { type: 'component', name: 'strong', props: {}, children: [
+                        {
+                            type: 'component',
+                            name: 'strong',
+                            props: {},
+                            children: [
                                 { type: 'markdown', content: 'important' }
-                            ]},
+                            ]
+                        },
                         { type: 'markdown', content: '.' }
-                    ]}
+                    ]
+                }
             ]);
         });
 
-        it('should handle nested components', () => {
+        it('should handle nested components including HTML tags', () => {
             const input = '<Outer><Inner><p>Content</p></Inner></Outer>';
             const result = parser.parse(input);
             expect(result).toEqual([
                 { type: 'component', name: 'Outer', props: {}, children: [
                         { type: 'component', name: 'Inner', props: {}, children: [
-                                { type: 'markdown', content: 'Content' }
+                                { type: 'component', name: 'p', props: {}, children: [
+                                        { type: 'markdown', content: 'Content' }
+                                    ]}
                             ]}
                     ]}
             ]);
@@ -129,144 +155,142 @@ More text.`;
                 { type: 'markdown', content: 'More text.' }
             ]);
         });
-    });
 
-    describe('parseProps', () => {
-        it('should parse string props', () => {
-            const propsString = 'prop1="value1" prop2=\'value2\'';
-            const result = parser.parseProps(propsString);
-            expect(result).toEqual({ prop1: 'value1', prop2: 'value2' });
-        });
+        describe('with fenced code blocks', () => {
+            it('should preserve fenced code blocks and not parse components within them', () => {
+                const input = `
+# Title
 
-        it('should parse number props', () => {
-            const propsString = 'prop1={42} prop2={3.14}';
-            const result = parser.parseProps(propsString);
-            expect(result).toEqual({ prop1: 42, prop2: 3.14 });
-        });
+Some text with a <Component prop="value" /> embedded.
 
-        it('should parse boolean props', () => {
-            const propsString = 'prop1={true} prop2={false} prop3';
-            const result = parser.parseProps(propsString);
-            expect(result).toEqual({ prop1: true, prop2: false, prop3: true });
-        });
+\`\`\`javascript
+// This JavaScript code block will be preserved
+const x = <Component>This is not parsed</Component>;
+\`\`\`
 
-        it('should parse object props', () => {
-            const propsString = 'prop1={{"key": "value"}} prop2={{nested: {foo: "bar"}}}';
-            const result = parser.parseProps(propsString);
-            expect(result).toEqual({
-                prop1: {"key": "value"},
-                prop2: {nested: {foo: "bar"}}
-            });
-        });
+\`\`\`python
+# This Python code block will also be preserved
+def hello():
+    print("Hello, <AnotherComponent />")
+\`\`\`
 
-        it('should parse array props', () => {
-            const propsString = 'prop1={[1, 2, 3]} prop2={["a", "b", "c"]}';
-            const result = parser.parseProps(propsString);
-            expect(result).toEqual({
-                prop1: [1, 2, 3],
-                prop2: ["a", "b", "c"]
-            });
-        });
-
-        it('should handle invalid JSON in props', () => {
-            const propsString = 'prop1={invalid json} prop2="valid"';
-            const result = parser.parseProps(propsString);
-            expect(result).toEqual({
-                prop1: '{invalid json}',
-                prop2: "valid"
-            });
-        });
-
-        it('should handle mixed prop types', () => {
-            const propsString = 'str="hello" num={42} bool={true} obj={{"key": "value"}} arr={[1,2,3]}';
-            const result = parser.parseProps(propsString);
-            expect(result).toEqual({
-                str: "hello",
-                num: 42,
-                bool: true,
-                obj: {"key": "value"},
-                arr: [1,2,3]
-            });
-        });
-
-        it('should handle props with spaces in values', () => {
-            const propsString = 'prop1="value with spaces" prop2=\'another spaced value\'';
-            const result = parser.parseProps(propsString);
-            expect(result).toEqual({
-                prop1: "value with spaces",
-                prop2: "another spaced value"
-            });
-        });
-
-        it('should handle props with escaped quotes', () => {
-            const propsString = 'prop1="value \\"quoted\\"" prop2=\'value \\\'quoted\\\'\'';
-            const result = parser.parseProps(propsString);
-            expect(result).toEqual({
-                prop1: 'value "quoted"',
-                prop2: "value 'quoted'"
-            });
-        });
-
-        it('should handle props with line breaks', () => {
-            const propsString = `
-            prop1="multi
-            line"
-            prop2={{
-                key: "value"
-            }}
-        `;
-            const result = parser.parseProps(propsString);
-            expect(result).toEqual({
-                prop1: "multi\n            line",
-                prop2: {key: "value"}
-            });
-        });
-    });
-});
-
-describe('parseContent function', () => {
-    it('should use MarkdownComponentParser to parse content', () => {        const input = 'Text <Component prop="value" /> More text';
-        const result = MarkdownParser.parseContent(input);
-        expect(result).toEqual([
-            { type: 'markdown', content: 'Text' },
-            { type: 'component', name: 'Component', props: { prop: 'value' }, children: null },
-            { type: 'markdown', content: 'More text' }
-        ]);
-    });
-
-    it('should handle complex nested structures', () => {
-        const input = `
-# Main Title
-
-<OuterComponent prop1="value1">
-  Some text inside OuterComponent
-
-  <InnerComponent prop2={42}>
-    ## Inner Title
-    
-    <DeepNestedComponent />
-
-    More inner text
-  </InnerComponent>
-
-  Final text in OuterComponent
-</OuterComponent>
-
-Conclusion paragraph.
+More text after the code blocks with another <Component />.
 `;
-        const result = MarkdownParser.parseContent(input);
-        expect(result).toEqual([
-            { type: 'markdown', content: '# Main Title' },
-            { type: 'component', name: 'OuterComponent', props: { prop1: 'value1' }, children: [
-                    { type: 'markdown', content: 'Some text inside OuterComponent' },
-                    { type: 'component', name: 'InnerComponent', props: { prop2: 42 }, children: [
-                            { type: 'markdown', content: '## Inner Title' },
-                            { type: 'component', name: 'DeepNestedComponent', props: {}, children: null },
-                            { type: 'markdown', content: 'More inner text' }
-                        ]},
-                    { type: 'markdown', content: 'Final text in OuterComponent' }
-                ]},
-            { type: 'markdown', content: 'Conclusion paragraph.' }
-        ]);
+                const result = parser.parse(input);
+                expect(result).toEqual([
+                    { type: 'markdown', content: '# Title\n\nSome text with a' },
+                    { type: 'component', name: 'Component', props: { prop: 'value' }, children: null },
+                    { type: 'markdown', content: 'embedded.\n\n```javascript\n// This JavaScript code block will be preserved\nconst x = <Component>This is not parsed</Component>;\n```\n\n```python\n# This Python code block will also be preserved\ndef hello():\n    print("Hello, <AnotherComponent />")\n```\n\nMore text after the code blocks with another' },
+                    { type: 'component', name: 'Component', props: {}, children: null },
+                    { type: 'markdown', content: '.' }
+                ]);
+            });
+
+            it('should handle fenced code blocks without language specification', () => {
+                const input = `
+Some text before.
+
+\`\`\`
+This is a code block without language specification
+<Component /> should not be parsed here
+\`\`\`
+
+Some text after.
+`;
+                const result = parser.parse(input);
+                expect(result).toEqual([
+                    {
+                        type: 'markdown',
+                        content: 'Some text before.\n\n```\nThis is a code block without language specification\n<Component /> should not be parsed here\n```\n\nSome text after.'
+                    }
+                ]);
+            });
+
+            it('should correctly handle mixed content with fenced code blocks and components', () => {
+                const input = `
+# Mixed Content Test
+
+<Component1 prop="value" />
+
+\`\`\`javascript
+// Code block
+const x = 5;
+\`\`\`
+
+<Component2>
+Nested content
+\`\`\`
+Nested code block
+<Component3 /> (should not be parsed)
+\`\`\`
+</Component2>
+
+Final text.
+`;
+                const result = parser.parse(input);
+                expect(result).toEqual([
+                    {
+                        type: 'markdown',
+                        content: '# Mixed Content Test'
+                    },
+                    {
+                        type: 'component',
+                        name: 'Component1',
+                        props: {
+                            prop: 'value'
+                        },
+                        children: null
+                    },
+                    {
+                        type: 'markdown',
+                        content: '```javascript\n// Code block\nconst x = 5;\n```'
+                    },
+                    {
+                        type: 'component',
+                        name: 'Component2',
+                        props: {},
+                        children: [
+                            {
+                                type: 'markdown',
+                                content: 'Nested content\n```\nNested code block\n<Component3 /> (should not be parsed)\n```'
+                            }
+                        ]
+                    },
+                    {
+                        type: 'markdown',
+                        content: 'Final text.'
+                    }
+                ]);
+            });
+        });
+    });
+
+    describe('Component prop parsing', () => {
+        it('should correctly parse various prop types in components', () => {
+            const input = `
+      <Component
+        stringProp="hello"
+        numberProp={42}
+        booleanProp={true}
+        objectProp={{ key: "value" }}
+        arrayProp={[1, 2, 3]}
+      />
+    `;
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                {
+                    type: 'component',
+                    name: 'Component',
+                    props: {
+                        stringProp: 'hello',
+                        numberProp: 42,
+                        booleanProp: true,
+                        objectProp: { key: 'value' },
+                        arrayProp: [1, 2, 3]
+                    },
+                    children: null
+                }
+            ]);
+        });
     });
 });

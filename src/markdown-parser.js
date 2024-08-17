@@ -1,124 +1,115 @@
-/**
- * A class for parsing markdown content with embedded components.
- */
+import { parse } from 'svelte/compiler';
+
 class MarkdownComponentParser {
     constructor() {
-        /**
-         * Regular expression for matching components in the markdown.
-         * @type {RegExp}
-         * @private
-         */
-        this.componentRegex = /<(\w+)([^>]*)(?:\/>|>([\s\S]*?)<\/\1>)/g;
-
-        /**
-         * Regular expression for parsing component properties.
-         * @type {RegExp}
-         * @private
-         */
-        this.propRegex = /(\w+)(?:=(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|({(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*})))?/g;
+        this.codeBlockRegex = /^```[\s\S]*?^```/gm;
+        this.codeBlocks = [];
     }
 
-    /**
-     * Parse the input markdown content with embedded components.
-     * @param {string} input - The input markdown content to parse.
-     * @returns {Array<Object>} An array of parsed content objects.
-     */
     parse(input) {
-        const result = [];
-        let lastIndex = 0;
-        for (const match of input.matchAll(this.componentRegex)) {
-            if (match.index > lastIndex) {
-                const content = input.slice(lastIndex, match.index).trim();
-                if (content) {
-                    result.push({ type: 'markdown', content });
-                }
-            }
-            const [fullMatch, name, propsString, children] = match;
-            const props = this.parseProps(propsString);
-            let parsedChildren = children ? this.parse(children.trim()) : null;
-
-            // Special case for paragraph tags
-            if (name === 'p') {
-                if (Object.keys(props).length === 0 && // No attributes
-                    parsedChildren &&
-                    parsedChildren.length === 1 &&
-                    parsedChildren[0].type === 'markdown' &&
-                    !/<\w+/.test(parsedChildren[0].content)) { // No nested tags
-                    result.push(parsedChildren[0]);
-                } else {
-                    result.push({
-                        type: 'component',
-                        name,
-                        props,
-                        children: parsedChildren
-                    });
-                }
-            } else {
-                result.push({
-                    type: 'component',
-                    name,
-                    props,
-                    children: parsedChildren
-                });
-            }
-            lastIndex = match.index + fullMatch.length;
-        }
-        if (lastIndex < input.length) {
-            const content = input.slice(lastIndex).trim();
-            if (content) {
-                result.push({ type: 'markdown', content });
-            }
-        }
-        return result;
+        // Preserve code blocks before parsing
+        const preprocessedInput = this.preserveCodeBlocks(input);
+        const parsed = parse(preprocessedInput);
+        return this.processNode(parsed.html);
     }
 
-    /**
-     * Parse the properties string of a component.
-     * @param {string} propsString - The string containing component properties.
-     * @returns {Object} An object containing parsed properties.
-     * @private
-     */
-    parseProps(propsString) {
+    preserveCodeBlocks(text) {
+        this.codeBlocks = [];
+        return text.replace(this.codeBlockRegex, (match) => {
+            this.codeBlocks.push(match);
+            return `__CODE_BLOCK_${this.codeBlocks.length - 1}__`;
+        });
+    }
+
+    restoreCodeBlocks(text) {
+        return text.replace(/__CODE_BLOCK_(\d+)__/g, (_, index) => this.codeBlocks[parseInt(index)]);
+    }
+
+    processNode(node) {
+        if (node.type === 'Fragment') {
+            return this.processChildren(node.children);
+        } else if (node.type === 'InlineComponent' || node.type === 'Element') {
+            return this.processComponent(node);
+        } else if (node.type === 'Text') {
+            return this.processText(node);
+        }
+        return [];
+    }
+
+    processChildren(children) {
+        return children.flatMap(child => this.processNode(child));
+    }
+
+    processComponent(node) {
+        const props = this.processAttributes(node.attributes);
+        let children = null;
+        if (node.children && node.children.length > 0) {
+            const processedChildren = this.processChildren(node.children);
+            children = processedChildren.length > 0 ? processedChildren : null;
+        }
+        return [{
+            type: 'component',
+            name: node.name,
+            props,
+            children
+        }];
+    }
+
+    processAttributes(attributes) {
         const props = {};
-        for (const match of propsString.matchAll(this.propRegex)) {
-            const [, key, doubleQuoted, singleQuoted, objectLiteral] = match;
-            let value;
-            if (objectLiteral) {
-                try {
-                    const trimmedLiteral = objectLiteral.replace(/^\{([\s\S]*)\}$/, '$1').trim();
-                    value = this.parseJSONLike(trimmedLiteral);
-                } catch (e) {
-                    console.warn(`Invalid JSON in prop ${key}:`, objectLiteral);
-                    value = objectLiteral;
-                }
-            } else if (doubleQuoted !== undefined) {
-                value = doubleQuoted;
-            } else if (singleQuoted !== undefined) {
-                value = singleQuoted;
-            } else {
-                value = true; // Boolean attribute
+        for (const attr of attributes) {
+            if (attr.type === 'Attribute') {
+                props[attr.name] = this.getAttributeValue(attr);
             }
-            props[key] = value;
         }
         return props;
     }
 
-    /**
-     * Parse a JSON-like string into a JavaScript object.
-     * @param {string} str - The JSON-like string to parse.
-     * @returns {*} The parsed JavaScript object or value.
-     * @private
-     */
-    parseJSONLike(str) {
-        return Function('"use strict";return (' + str + ')')();
+    getAttributeValue(attr) {
+        if (attr.value.length === 1) {
+            const value = attr.value[0];
+            if (value.type === 'Text') {
+                return value.data;
+            } else if (value.type === 'MustacheTag') {
+                return this.evaluateExpression(value.expression);
+            }
+        }
+        // For complex values, return as string
+        return attr.value.map(v => v.raw || v.expression.raw).join('');
+    }
+
+    evaluateExpression(expression) {
+        switch (expression.type) {
+            case 'Literal':
+                return expression.value;
+            case 'Identifier':
+                return expression.name;
+            case 'ObjectExpression':
+                return this.evaluateObjectExpression(expression);
+            case 'ArrayExpression':
+                return expression.elements.map(elem => this.evaluateExpression(elem));
+            default:
+                // For other expressions, return as string
+                return expression.raw;
+        }
+    }
+
+    evaluateObjectExpression(objExpr) {
+        const result = {};
+        for (const prop of objExpr.properties) {
+            const key = this.evaluateExpression(prop.key);
+            const value = this.evaluateExpression(prop.value);
+            result[key] = value;
+        }
+        return result;
+    }
+
+    processText(node) {
+        const content = this.restoreCodeBlocks(node.data).trim();
+        return content ? [{ type: 'markdown', content }] : [];
     }
 }
 
-/**
- * Parse the given markdown content with embedded components.
- * @param {string} input - The input markdown content to parse.
- * @returns {Array<Object>} An array of parsed content objects.
- */
 function parseContent(input) {
     const parser = new MarkdownComponentParser();
     return parser.parse(input);
