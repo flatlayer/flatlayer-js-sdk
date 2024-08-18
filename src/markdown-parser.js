@@ -32,6 +32,8 @@ class MarkdownComponentParser {
             return this.processComponent(node);
         } else if (node.type === 'Text') {
             return this.processText(node);
+        } else if (node.type === 'Comment') {
+            return this.processComment(node);
         }
         return [];
     }
@@ -74,6 +76,10 @@ class MarkdownComponentParser {
                 return this.evaluateExpression(value.expression);
             }
         }
+        else if (!Array.isArray(attr.value)) {
+            return attr.value;
+        }
+
         // For complex values, return as string
         return attr.value.map(v => v.raw || v.expression.raw).join('');
     }
@@ -107,6 +113,10 @@ class MarkdownComponentParser {
     processText(node) {
         const content = this.restoreCodeBlocks(node.data).trim();
         return content ? [{ type: 'markdown', content }] : [];
+    }
+
+    processComment(node) {
+        return [{ type: 'markdown', content: `<!--${node.data}-->` }];
     }
 }
 

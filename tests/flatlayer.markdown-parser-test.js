@@ -131,6 +131,16 @@ More text.`;
                     }, children: null }
             ]);
         });
+
+        it('should remove comments and separate surrounding text in markdown', () => {
+            const input = 'Text before <!-- This is a comment --> Text after';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'markdown', content: 'Text before' },
+                { type: 'markdown', content: '<!-- This is a comment -->' },
+                { type: 'markdown', content: 'Text after' }
+            ]);
+        });
     });
 
     describe('HTML Tag Handling', () => {
@@ -178,6 +188,14 @@ More text.`;
                         { type: 'markdown', content: '.' }
                     ]
                 }
+            ]);
+        });
+
+        it('should handle components with boolean attributes', () => {
+            const input = '<Component isActive disabled />';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'component', name: 'Component', props: { isActive: true, disabled: true }, children: null }
             ]);
         });
     });
@@ -385,6 +403,25 @@ Final text.
                     },
                     children: null
                 }
+            ]);
+        });
+
+        it('should correctly parse self-closing HTML tags', () => {
+            const input = 'This is an image: <img src="example.jpg" alt="Example" />';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'markdown', content: 'This is an image:' },
+                { type: 'component', name: 'img', props: { src: 'example.jpg', alt: 'Example' }, children: null }
+            ]);
+        });
+
+        it('should parse components within list items', () => {
+            const input = '- List item with <Component /> inside\n- Another item';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'markdown', content: '- List item with' },
+                { type: 'component', name: 'Component', props: {}, children: null },
+                { type: 'markdown', content: 'inside\n- Another item' }
             ]);
         });
     });
