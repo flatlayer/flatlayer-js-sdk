@@ -94,9 +94,11 @@ class MarkdownComponentParser {
                 return this.evaluateObjectExpression(expression);
             case 'ArrayExpression':
                 return expression.elements.map(elem => this.evaluateExpression(elem));
+            case 'BinaryExpression':
+                return this.evaluateBinaryExpression(expression);
             default:
                 // For other expressions, return as string
-                return expression.raw;
+                return expression.raw || JSON.stringify(expression);
         }
     }
 
@@ -108,6 +110,21 @@ class MarkdownComponentParser {
             result[key] = value;
         }
         return result;
+    }
+
+    evaluateBinaryExpression(expression) {
+        const left = this.evaluateExpression(expression.left);
+        const right = this.evaluateExpression(expression.right);
+        switch (expression.operator) {
+            case '+': return left + right;
+            case '-': return left - right;
+            case '*': return left * right;
+            case '/': return left / right;
+            // Add more operators as needed
+            default:
+                // If we don't recognize the operator, return as string
+                return `${left} ${expression.operator} ${right}`;
+        }
     }
 
     processText(node) {

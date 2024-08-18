@@ -473,4 +473,124 @@ Conclusion paragraph.
             ]);
         });
     });
+
+    describe('Advanced Component Parsing', () => {
+        it('should handle components with JSX expressions in props', () => {
+            const input = '<Component prop={2 + 2} />';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'component', name: 'Component', props: { prop: 4 }, children: null }
+            ]);
+        });
+    });
+
+    describe('Markdown and Component Interaction', () => {
+        it('should handle markdown immediately adjacent to components', () => {
+            const input = '**Bold**<Component />*Italic*';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'markdown', content: '**Bold**' },
+                { type: 'component', name: 'Component', props: {}, children: null },
+                { type: 'markdown', content: '*Italic*' }
+            ]);
+        });
+    });
+
+    describe('Special Characters and Escaping', () => {
+        it('should handle component props with special characters', () => {
+            const input = '<Component prop="value with < and >" />';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'component', name: 'Component', props: { prop: 'value with < and >' }, children: null }
+            ]);
+        });
+
+    });
+
+    describe('Complex Nested Structures', () => {
+        it('should handle deeply nested components with mixed content', () => {
+            const input = `
+<Outer>
+  <Inner1>
+    Some text
+    <DeepNested>
+      ## Markdown heading
+      <VeryDeep prop="value" />
+    </DeepNested>
+  </Inner1>
+  <Inner2 />
+</Outer>
+        `;
+            const result = parser.parse(input);
+            expect(result).toEqual([{
+                type: "component",
+                name: "Outer",
+                props: {},
+                children: [
+                    {
+                        type: "component",
+                        name: "Inner1",
+                        props: {},
+                        children: [
+                            { type: "markdown", content: "Some text" },
+                            {
+                                type: "component",
+                                name: "DeepNested",
+                                props: {},
+                                children: [
+                                    { type: "markdown", content: "## Markdown heading" },
+                                    { type: "component", name: "VeryDeep", props: { prop: "value" }, children: null }
+                                ]
+                            }
+                        ]
+                    },
+                    { type: "component", name: "Inner2", props: {}, children: null }
+                ]
+            }]);
+        });
+    });
+
+    describe('Edge Cases', () => {
+        it('should handle components with empty prop values', () => {
+            const input = '<Component prop="" />';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'component', name: 'Component', props: { prop: '' }, children: null }
+            ]);
+        });
+
+        it('should parse components within markdown blockquotes', () => {
+            const input = '> This is a quote\n> <Component /> within a blockquote';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                {
+                    type: "markdown",
+                    content: "> This is a quote\n>"
+                },
+                {
+                    type: "component",
+                    name: "Component",
+                    props: {},
+                    children: null
+                },
+                {
+                    type: "markdown",
+                    content: "within a blockquote"
+                }
+            ]);
+        });
+
+        it('should handle components with line breaks in their attributes', () => {
+            const input = `
+<Component
+  prop1="value1"
+  prop2="value2"
+/>
+      `;
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                { type: 'component', name: 'Component', props: { prop1: 'value1', prop2: 'value2' }, children: null }
+            ]);
+        });
+    });
 });
