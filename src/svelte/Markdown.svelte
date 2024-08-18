@@ -3,12 +3,16 @@
     import DOMPurify from 'dompurify';
     import { onMount } from 'svelte';
     import slugify from 'slugify';
+    import ResponsiveImage from './ResponsiveImage.svelte';
 
     export let content = [];
     export let components = {};
     export let componentDefaults = {};
 
     let memoizedContent = new Map();
+
+    // Always include ResponsiveImage in the components
+    components = { ResponsiveImage, ...components };
 
     function mergeProps(defaults, props) {
         return { ...defaults, ...props };
