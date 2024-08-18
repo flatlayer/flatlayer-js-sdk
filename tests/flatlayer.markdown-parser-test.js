@@ -342,6 +342,51 @@ Final text.
                 { type: 'markdown', content: 'more text' }
             ]);
         });
+
+        it('should handle components with JSON property containing a nested component', () => {
+            const input = '<Component jsonProp={{"key": "value", "nestedComponent": "<NestedComponent prop=\\"nestedValue\\" />", "array": [1, 2, 3]}} />';
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                {
+                    type: 'component',
+                    name: 'Component',
+                    props: {
+                        jsonProp: {
+                            key: "value",
+                            nestedComponent: "<NestedComponent prop=\"nestedValue\" />",
+                            array: [1, 2, 3]
+                        }
+                    },
+                    children: null
+                }
+            ]);
+        });
+
+        it('should handle components with JSON property containing a code block', () => {
+            const input = `
+<Component
+  jsonProp={{
+    "key": "value",
+    "codeBlock": "\`\`\`javascript\\nfunction example() {\\n  console.log('Hello, world!');\\n}\\n\`\`\`",
+    "array": [1, 2, 3]
+  }}
+/>`;
+            const result = parser.parse(input);
+            expect(result).toEqual([
+                {
+                    type: 'component',
+                    name: 'Component',
+                    props: {
+                        jsonProp: {
+                            key: "value",
+                            codeBlock: "```javascript\nfunction example() {\n  console.log('Hello, world!');\n}\n```",
+                            array: [1, 2, 3]
+                        }
+                    },
+                    children: null
+                }
+            ]);
+        });
     });
 
     describe('parseContent function', () => {
