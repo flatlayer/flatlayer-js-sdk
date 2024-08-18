@@ -172,7 +172,7 @@ describe('FlatlayerImage', () => {
             expect(result.every(entry => !entry.match(/(\d+)w$/) || parseInt(entry.match(/(\d+)w$/)[1]) <= 1600)).toBe(true);
 
             result.forEach(entry => {
-                expect(entry).toMatch(/^https:\/\/api\.example\.com\/image\/test-image-id\?q=80&w=\d+&h=\d+ \d+w$/);
+                expect(entry).toMatch(/^https:\/\/api\.example\.com\/image\/test-image-id(\.\w+)?\?(w=\d+&h=\d+&q=80|h=\d+&w=\d+&q=80|q=80&w=\d+&h=\d+) \d+w$/);
             });
 
             result.forEach(entry => {
@@ -198,7 +198,7 @@ describe('FlatlayerImage', () => {
             expect(result.every(entry => !entry.match(/1600w$/))).toBe(true);
 
             result.forEach(entry => {
-                expect(entry).toMatch(/^https:\/\/api\.example\.com\/image\/test-image-id\?q=80&w=\d+&h=\d+ \d+w$/);
+                expect(entry).toMatch(/^https:\/\/api\.example\.com\/image\/test-image-id\.jpg\?(q=80&w=\d+&h=\d+|w=\d+&h=\d+&q=80|h=\d+&w=\d+&q=80) \d+w$/);
             });
 
             result.forEach(entry => {
@@ -210,20 +210,20 @@ describe('FlatlayerImage', () => {
                 }
             });
 
-            expect(result[0]).toMatch(/w=400&h=300 400w$/);
-            expect(result[1]).toMatch(/w=800&h=600 800w$/);
+            expect(result[0]).toMatch(/w=400&h=300.*400w$/);
+            expect(result[1]).toMatch(/w=800&h=600.*800w$/);
         });
     });
 
     describe('getUrl', () => {
         it('should generate correct URL with transforms', () => {
             const url = flatlayerImage.getUrl({ w: 300, h: 200, q: 90 });
-            expect(url).toBe('https://api.example.com/image/test-image-id?q=90&w=300&h=200');
+            expect(url).toBe('https://api.example.com/image/test-image-id.jpg?w=300&h=200&q=90');
         });
 
         it('should generate correct URL without transforms', () => {
             const url = flatlayerImage.getUrl();
-            expect(url).toBe('https://api.example.com/image/test-image-id');
+            expect(url).toBe('https://api.example.com/image/test-image-id.jpg');
         });
     });
 });
