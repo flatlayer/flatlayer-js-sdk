@@ -8,6 +8,7 @@
     export let content = [];
     export let components = {};
     export let componentDefaults = {};
+    export let isComponentChild = false;
 
     let memoizedContent = new Map();
 
@@ -18,15 +19,21 @@
         return { ...defaults, ...props };
     }
 
-    function sanitizeAndParse(markdown) {
+    function sanitizeAndParse(markdown, isComponentChild) {
         try {
             const parsed = marked(markdown);
-            // Check if DOMPurify is available in the current environment
-            if (typeof window !== 'undefined' && DOMPurify) {
-                return DOMPurify.sanitize(parsed);
+            let sanitized = typeof window !== 'undefined' && DOMPurify ? DOMPurify.sanitize(parsed) : parsed;
+            sanitized = sanitized.trim();
+
+            // Check if the parsed content is a single line (excluding whitespace)
+            const singleLine = sanitized.trim().split('\n').length === 1;
+
+            // If it's a single line, a component child, and wrapped in <p> tags, remove the tags
+            if (isComponentChild && singleLine && sanitized.startsWith('<p>') && sanitized.endsWith('</p>')) {
+                sanitized = sanitized.slice(3, -4);
             }
-            // If DOMPurify is not available (e.g., in SSR), return the parsed markdown
-            return parsed;
+
+            return sanitized;
         } catch (error) {
             console.error('Error parsing markdown:', error);
             return 'Error parsing content';
@@ -56,17 +63,18 @@
         };
     });
 
-    function getMarkdownContent(item) {
-        if (!memoizedContent.has(item.content)) {
-            memoizedContent.set(item.content, sanitizeAndParse(item.content));
+    function getMarkdownContent(item, isComponentChild) {
+        const key = `${item.content}-${isComponentChild}`;
+        if (!memoizedContent.has(key)) {
+            memoizedContent.set(key, sanitizeAndParse(item.content, isComponentChild));
         }
-        return memoizedContent.get(item.content);
+        return memoizedContent.get(key);
     }
 </script>
 
 {#each content as item}
     {#if item.type === 'markdown'}
-        {@html getMarkdownContent(item)}
+        {@html getMarkdownContent(item, isComponentChild)}
     {:else if item.type === 'component'}
         {#if components[item.name]}
             <svelte:component
@@ -78,6 +86,7 @@
                             content={item.children}
                             {components}
                             {componentDefaults}
+                            isComponentChild={true}
                     />
                 {/if}
             </svelte:component>
@@ -91,6 +100,7 @@
                             content={item.children}
                             {components}
                             {componentDefaults}
+                            isComponentChild={true}
                     />
                 {/if}
             </svelte:element>
