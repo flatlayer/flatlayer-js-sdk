@@ -17,7 +17,12 @@
     function sanitizeAndParse(markdown) {
         try {
             const parsed = marked(markdown);
-            return DOMPurify.sanitize(parsed);
+            // Check if DOMPurify is available in the current environment
+            if (typeof window !== 'undefined' && DOMPurify) {
+                return DOMPurify.sanitize(parsed);
+            }
+            // If DOMPurify is not available (e.g., in SSR), return the parsed markdown
+            return parsed;
         } catch (error) {
             console.error('Error parsing markdown:', error);
             return 'Error parsing content';
@@ -26,11 +31,13 @@
 
     // Custom renderer
     const renderer = {
-        heading(text, level) {
+        heading(token) {
+            const { text, depth } = token;
             const id = slugify(text, { lower: true, strict: true });
-            return `<h${level} id="${id}">${text}</h${level}>`;
+            return `<h${depth} id="${id}">${text}</h${depth}>`;
         },
-        link(href, title, text) {
+        link(token) {
+            const { href, title, text } = token;
             const isExternal = href.startsWith('http') || href.startsWith('//');
             const attributes = isExternal ? ' rel="noopener noreferrer"' : '';
             return `<a href="${href}"${title ? ` title="${title}"` : ''}${attributes}>${text}</a>`;
