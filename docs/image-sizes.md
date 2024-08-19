@@ -96,19 +96,30 @@ This setup creates a responsive image that:
 3. Takes up a third of the width minus 32px padding on medium screens (769px to 1024px)
 4. Has a fixed width of 480px on large screens (above 1024px)
 
-For more information on using Flatlayer with Svelte, see the [Svelte Integration Guide](./svelte.md).
+## Advanced Usage
+
+The `ResponsiveImage` component now supports automatic size calculation based on its container. If you don't provide a `sizes` prop, it will dynamically calculate the appropriate sizes based on the image's container width and the viewport width.
+
+```svelte
+<ResponsiveImage
+  baseUrl={flatlayer.baseUrl}
+  imageData={imageData}
+  maxWidth={800}
+  isFluid={true}
+/>
+```
+
+In this example, the component will automatically calculate the sizes attribute, ensuring the image is never wider than 800px while maintaining fluid responsiveness.
 
 ## Performance Considerations
 
-1. **Optimize Image Delivery**: Use the `sizes` attribute accurately to ensure browsers download the most appropriate image size.
+1. **Optimize Image Delivery**: The `ResponsiveImage` component now generates an optimized srcset based on the image's dimensions and the provided sizes.
 
-2. **Lazy Loading**: Implement lazy loading for images below the fold to improve initial page load times. The `ResponsiveImage` component supports this out of the box.
+2. **Lazy Loading**: The component supports lazy loading out of the box, improving initial page load times.
 
-3. **Use WebP Format**: Leverage the WebP format for better compression when supported by the browser. You can specify this in the `defaultTransforms` when creating a `FlatlayerImage` instance.
+3. **Use WebP Format**: Leverage the WebP format for better compression when supported by the browser. You can specify this in the `defaultTransforms`.
 
-4. **Caching**: Implement appropriate caching strategies for your images. While this is typically handled at the server level, ensure your application doesn't unnecessarily invalidate the cache for static images.
-
-For more performance optimization techniques, see the [Advanced Usage Guide](./advanced.md).
+4. **Thumbhash Placeholder**: The component now uses a thumbhash placeholder for a smoother loading experience.
 
 ## Best Practices
 
@@ -118,36 +129,17 @@ For more performance optimization techniques, see the [Advanced Usage Guide](./a
 
 3. **Use Precise Values**: Use precise values in `sizes` (e.g., `33.33vw` instead of `33vw` for more accurate sizing).
 
-4. **Optimize for Performance**: Use fixed pixel values for larger screens when the image size won't change beyond a certain point.
+4. **Optimize for Performance**: Use the `maxWidth` prop to prevent unnecessary large image downloads.
 
 5. **Test Thoroughly**: Always test your responsive images across various device sizes to ensure they behave as expected.
 
 6. **Balance Flexibility and Precision**: While `vw` units offer flexibility, sometimes fixed `px` values are more appropriate, especially for larger screens.
 
-7. **Document Your Choices**: When using complex `sizes` attributes, consider adding comments to explain the reasoning behind each breakpoint decision.
-
-## Error Handling
-
-When working with images and sizes, it's important to handle potential errors:
-
-```javascript
-try {
-  // Use ResponsiveImage component or other image-related logic
-} catch (error) {
-  if (error instanceof FlatlayerError) {
-    console.error('Flatlayer Error:', error.message);
-    // Provide fallback image or error handling...
-  } else {
-    console.error('Unexpected error:', error.message);
-  }
-}
-```
-
-For more information on error handling, refer to the [Error Handling section](./advanced.md#error-handling) in the Advanced Usage Guide.
+7. **Leverage Automatic Sizing**: For simpler use cases, let the `ResponsiveImage` component handle size calculations automatically.
 
 ## Conclusion
 
-Understanding and effectively using the `sizes` attribute in the Flatlayer SDK allows you to create truly responsive images that adapt seamlessly to various layouts and screen sizes. By combining this with Tailwind CSS principles and the `ResponsiveImage` component, you can ensure optimal performance and visual consistency across your application.
+Understanding and effectively using the `sizes` attribute in the Flatlayer SDK allows you to create truly responsive images that adapt seamlessly to various layouts and screen sizes. By combining this with the automatic sizing features of the `ResponsiveImage` component, you can ensure optimal performance and visual consistency across your application.
 
 Remember, the key to effective use of `sizes` is understanding your layout requirements and how they change across different breakpoints. With practice, you'll be able to craft precise and efficient responsive image solutions for any design scenario.
 

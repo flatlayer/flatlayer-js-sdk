@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The Flatlayer SDK provides essential image handling capabilities through the `FlatlayerImage` class and related methods. This guide will walk you through the process of working with images and optimizing image delivery in your Flatlayer-powered applications.
+The Flatlayer SDK provides powerful image handling capabilities through the `FlatlayerImage` class and related methods. This guide will walk you through the process of working with images and optimizing image delivery in your Flatlayer-powered applications.
 
 ## Creating a FlatlayerImage Instance
 
@@ -15,16 +15,18 @@ const flatlayer = new Flatlayer('https://api.yourflatlayerinstance.com');
 
 const imageData = {
     id: '12345',
-    dimensions: { width: 1200, height: 800 },
+    width: 1200,
+    height: 800,
     meta: { alt: 'A beautiful landscape' }
 };
 
 const flatlayerImage = flatlayer.createImage(imageData, { quality: 80 });
 ```
 
-The `createImage` method accepts two parameters:
+The `createImage` method accepts three parameters:
 1. `imageData`: The image data object from your Flatlayer CMS.
 2. `defaultTransforms` (optional): Default transformation parameters for the image.
+3. `imageEndpoint` (optional): Custom image endpoint URL.
 
 ## Generating Image Attributes
 
@@ -39,11 +41,23 @@ const imgAttributes = flatlayerImage.generateImgAttributes(
 console.log('Image attributes:', imgAttributes);
 ```
 
-This method returns an object with attributes like `src`, `alt`, `width`, and `height`.
+This method returns an object with attributes like `src`, `alt`, `srcset`, `width`, and `height`.
 
 Parameters:
 1. `attributes` (optional): Additional HTML attributes for the img tag.
 2. `displaySize` (optional): The intended display size as `[width, height]`.
+
+## Srcset Generation
+
+The `FlatlayerImage` class now supports advanced srcset generation for both fluid and fixed sizing:
+
+```javascript
+const fluidSrcset = flatlayerImage.generateSrcset(true);
+console.log('Fluid srcset:', fluidSrcset);
+
+const fixedSrcset = flatlayerImage.generateSrcset(false, [800, 600]);
+console.log('Fixed srcset:', fixedSrcset);
+```
 
 ## Using in Frameworks
 
@@ -73,6 +87,9 @@ onMount(async () => {
     imageData={post.featured_image}
     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
     attributes={{ class: 'my-image' }}
+    isFluid={true}
+    lazyLoad={true}
+    blurRadius={20}
   />
 {/if}
 ```
@@ -84,21 +101,17 @@ This creates a responsive image that adapts to different viewport sizes. For mor
 You can get URLs for transformed images:
 
 ```javascript
-const imageUrl = flatlayer.getImageUrl('image-id', {
-  width: 800,
-  height: 600,
-  quality: 80,
-  format: 'webp'
+const imageUrl = flatlayerImage.getUrl({
+  w: 800,
+  h: 600,
+  q: 80,
+  fm: 'webp'
 });
 
 console.log('Transformed image URL:', imageUrl);
 ```
 
-This method is useful when you need to generate image URLs programmatically, such as for background images or custom image components.
-
 ## FlatlayerImage Class Methods
-
-The `FlatlayerImage` class includes several methods for handling images. Here's a look at some key methods:
 
 ### getAlt(): string
 
@@ -114,7 +127,7 @@ console.log('Alt text:', altText);
 This method returns the URL for the image with applied transforms.
 
 ```javascript
-const url = flatlayerImage.getUrl({ width: 800, height: 600, quality: 80 });
+const url = flatlayerImage.getUrl({ w: 800, h: 600, q: 80 });
 console.log('Image URL:', url);
 ```
 
@@ -127,12 +140,22 @@ const thumbhashUrl = flatlayerImage.getThumbhashDataUrl();
 console.log('Thumbhash data URL:', thumbhashUrl);
 ```
 
+### generateSrcset(isFluid: boolean, displaySize?: [number, number]): string
+
+This method generates a srcset string for responsive images.
+
+```javascript
+const srcset = flatlayerImage.generateSrcset(true);
+console.log('Srcset:', srcset);
+```
+
 ## Performance Considerations
 
 1. Use appropriate image sizes to avoid unnecessary large file downloads.
 2. Leverage the `webp` format when possible for better compression.
 3. Implement lazy loading for images below the fold to improve initial page load times.
 4. Use the `sizes` attribute accurately in the ResponsiveImage component to ensure the browser downloads the most appropriate image size.
+5. Utilize the thumbhash placeholder for a smoother loading experience.
 
 For more performance optimization techniques, see the [Advanced Usage Guide](./advanced.md).
 
@@ -157,7 +180,7 @@ try {
 
 ## Conclusion
 
-The image handling features of the Flatlayer SDK allow you to easily work with optimized images in your Flatlayer-powered applications. By using these tools effectively, you can ensure that your applications deliver high-quality images while maintaining good performance across various devices and screen sizes.
+The image handling features of the Flatlayer SDK allow you to easily work with optimized, responsive images in your Flatlayer-powered applications. By using these tools effectively, you can ensure that your applications deliver high-quality images while maintaining good performance across various devices and screen sizes.
 
 For more information on related topics, check out these guides:
 - [Image Sizes Guide](./image-sizes.md)

@@ -1,80 +1,101 @@
-# Markdown Component
+# Markdown Component - Image Handling
 
-The `Markdown` component allows you to render Markdown content with embedded components.
+The `Markdown` component now includes enhanced support for responsive images using the `ResponsiveImage` component. This integration allows for optimized image rendering within your Markdown content.
 
-## Basic Usage
+## Image Handling in Markdown
 
-Import and use the `Markdown` component in your Svelte file:
+When you include an image in your Markdown content using the standard Markdown syntax, the `Markdown` component will automatically render it using the `ResponsiveImage` component. This provides all the benefits of responsive and optimized images without requiring any additional markup.
+
+### Basic Image Usage
+
+In your Markdown content, you can include images using the standard Markdown syntax:
+
+```markdown
+![Alt text](https://example.com/image.jpg "Optional title")
+```
+
+The `Markdown` component will automatically convert this to use the `ResponsiveImage` component.
+
+## Customizing Image Rendering
+
+You can customize how images are rendered by providing default props for the `ResponsiveImage` component.
+
+### Example Usage
 
 ```svelte
 <script>
 import Markdown from "flatlayer-sdk/svelte/Markdown";
-import ResponsiveImage from "flatlayer-sdk/svelte/ResponsiveImage";
 import { env } from '$env/dynamic/public';
 
-// Assuming you have fetched the parsed content
 let parsedContent = [/* your parsed content */];
-
-const components = {
-  ResponsiveImage
-};
 
 const componentDefaults = {
   ResponsiveImage: {
     baseUrl: env.PUBLIC_FLATLAYER_ENDPOINT,
-    defaultTransforms: {quality: 80, format: 'webp'},
-    sizes: ['100vw', 'md:75vw', 'lg:50vw'],
+    defaultTransforms: { quality: 80, format: 'webp' },
+    sizes: '(min-width: 1024px) 800px, 100vw',
     class: 'rounded-lg shadow-sm',
     isFluid: true,
     lazyLoad: true,
-    blurRadius: 20
+    blurRadius: 20,
+    maxWidth: 800
   }
 };
 </script>
 
-<Markdown content={parsedContent} {components} {componentDefaults} />
+<Markdown content={parsedContent} {componentDefaults} />
 ```
 
-## Props
+In this example, all images within the Markdown content will be rendered using these default settings for the `ResponsiveImage` component.
 
-- `content` (required): An array of parsed content objects.
-- `components` (optional): An object mapping component names to their implementations.
-- `componentDefaults` (optional): Default props for components.
+## Advanced Image Usage
 
-## Parsing Content
+For more control over image rendering, you can use the `ResponsiveImage` component directly within your Markdown content. This allows you to specify props for individual images.
 
-To use the `Markdown` component, you need to parse your content first. You can do this using the `MarkdownParser` from the Flatlayer SDK:
+### Example of Advanced Image Usage in Markdown
 
-```javascript
-import { MarkdownParser } from 'flatlayer-sdk';
+```markdown
+# My Blog Post
 
-const rawContent = '# Title\n\nSome markdown content with <ResponsiveImage imageData={...} />';
-const parsedContent = MarkdownParser.parseContent(rawContent);
+Here's a responsive image with custom properties:
+
+<ResponsiveImage
+  imageData={{ id: 'image-id', alt: 'A beautiful landscape' }}
+  sizes="(min-width: 1024px) 800px, 100vw"
+  maxWidth={800}
+  class="my-custom-image-class"
+/>
+
+The rest of your content goes here...
 ```
 
-This parsed content can then be passed to the `Markdown` component.
+This approach allows you to fine-tune the rendering of specific images within your Markdown content.
 
-## Using Custom Components
+## Image Optimization
 
-You can use custom components within your Markdown content. Define these components and pass them to the `Markdown` component:
+The `ResponsiveImage` component automatically handles image optimization, including:
 
-```svelte
-<script>
-import Markdown from "flatlayer-sdk/svelte/Markdown";
-import CustomComponent from './CustomComponent.svelte';
+- Responsive sizing based on the `sizes` attribute
+- Lazy loading for improved performance
+- Automatic WebP format usage when supported by the browser
+- Placeholder images using blur-up technique
 
-const components = {
-  CustomComponent
-};
+These optimizations are applied to all images in your Markdown content, ensuring optimal performance and user experience.
 
-const parsedContent = [/* ... */];
-</script>
+## Styling Images
 
-<Markdown content={parsedContent} {components} />
+You can style images rendered by the `ResponsiveImage` component using CSS. The component adds a wrapper div with the class `flatlayer-image-wrapper`, which you can target for styling:
+
+```css
+.flatlayer-image-wrapper {
+  /* Your styles here */
+}
+
+.flatlayer-image-wrapper img {
+  /* Styles for the actual image */
+}
 ```
 
-Now, you can use `<CustomComponent />` within your Markdown content, and it will be rendered correctly.
+You can also add custom classes to images using the `class` prop in the `componentDefaults` or when using the `ResponsiveImage` component directly in Markdown.
 
-## Styling
-
-The `Markdown` component renders standard HTML elements for Markdown content. You can style these elements using your preferred CSS method. For embedded components, you can pass class names or inline styles through the `componentDefaults` or within the Markdown content itself.
+By leveraging these features, you can ensure that images within your Markdown content are responsive, optimized, and consistent with your application's design.
