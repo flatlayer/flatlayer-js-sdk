@@ -8,15 +8,16 @@
     export let imageData = undefined;
     export let defaultTransforms = {};
     export let imageEndpoint = null;
-    export let sizes = '100vw'; // Changed to string
+    export let sizes = '100vw';
     export let attributes = {};
-    export const isFluid = true;
+    export let isFluid = true;
     export let displaySize = false;
     export let lazyLoad = true;
     export let blurRadius = 40;
     export let alt = undefined;
     export let title = undefined;
     export let fallbackSrc = undefined;
+    export let maxWidth = undefined;
 
     // Local state
     let flatlayerImage;
@@ -27,8 +28,12 @@
     let imageElement;
     let thumbhashUrl = '';
     let error = false;
+    let dynamicSizes = sizes;
 
     const dispatch = createEventDispatcher();
+
+    const DEBOUNCE_TIMEOUT = 200;
+    const WIDTH_MIN_SIZE = 40;
 
     $: {
         if (imageData) {
@@ -42,12 +47,15 @@
         }
     }
 
+    $: calculatedSizes = maxWidth && dynamicSizes === '100vw'
+        ? `(min-width: ${maxWidth}px) ${maxWidth}px, 100vw`
+        : dynamicSizes;
+
     $: if (flatlayerImage) {
         imgAttributes = flatlayerImage.generateImgAttributes(
             {
                 ...attributes,
                 loading: lazyLoad ? 'lazy' : 'eager',
-                sizes, // Add sizes attribute here
             },
             displaySize
         );
@@ -59,12 +67,43 @@
             willAnimate = false;
         }
         dispatch('load');
+        updateImageSizes();
     }
 
     function handleImageError() {
         error = true;
         dispatch('error');
     }
+
+    function getElementWidth(el) {
+        let width = el.offsetWidth;
+        if (width < WIDTH_MIN_SIZE) {
+            width = WIDTH_MIN_SIZE;
+            let parent = el.parentNode;
+            while (parent && width < WIDTH_MIN_SIZE) {
+                width = parent.offsetWidth;
+                parent = parent.parentNode;
+            }
+        }
+        return width;
+    }
+
+    function updateImageSizes() {
+        if (imageElement && imageElement.complete && imageElement.naturalWidth > 0) {
+            const currentWidth = getElementWidth(imageElement);
+            dynamicSizes = `${currentWidth}px`;
+        }
+    }
+
+    function debounce(func, timeout) {
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => func.apply(this, args), timeout);
+        };
+    }
+
+    const debouncedUpdateSizes = debounce(updateImageSizes, DEBOUNCE_TIMEOUT);
 
     onMount(() => {
         if (imageElement.complete) {
@@ -85,11 +124,14 @@
             imageElement.onerror = handleImageError;
         }
 
+        window.addEventListener('resize', debouncedUpdateSizes, false);
+
         return () => {
             if (imageElement) {
                 imageElement.onload = null;
                 imageElement.onerror = null;
             }
+            window.removeEventListener('resize', debouncedUpdateSizes, false);
         };
     });
 </script>
@@ -99,6 +141,7 @@
          style="--blur-radius: {blurRadius}px; background-image: url({thumbhashUrl}); background-size: cover;">
         <img
                 {...imgAttributes}
+                sizes={calculatedSizes}
                 alt={alt || flatlayerImage.getAlt()}
                 {title}
                 class:imageLoaded
