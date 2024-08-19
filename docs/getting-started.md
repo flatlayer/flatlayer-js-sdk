@@ -8,9 +8,11 @@ The Flatlayer SDK is a powerful JavaScript library designed to simplify interact
 
 - Simple API for retrieving entries and performing searches
 - Support for advanced filtering and field selection
-- Responsive image handling with adaptive sizing
+- Responsive image handling with adaptive sizing and built-in optimization
 - TypeScript support for enhanced development experience
-- Svelte integration for seamless component-based development
+- Svelte integration with pre-built components for easy implementation
+- Markdown parsing and rendering capabilities
+- Robust error handling with custom FlatlayerError class
 
 ## Installation
 
@@ -54,6 +56,7 @@ flatlayer.getEntryList('post', {
   .then(response => {
     console.log('Blog posts:', response.data);
     console.log('Total posts:', response.total);
+    console.log('Current page:', response.current_page);
   })
   .catch(error => console.error('Error fetching blog posts:', error));
 ```
@@ -69,6 +72,7 @@ flatlayer.getEntry('page', 'about-us', ['title', 'content', 'meta'])
   .then(page => {
     console.log('Page title:', page.title);
     console.log('Page content:', page.content);
+    console.log('Page meta:', page.meta);
   })
   .catch(error => console.error('Error fetching page:', error));
 ```
@@ -81,7 +85,7 @@ To search across your content:
 flatlayer.search('JavaScript', 'post', {
   page: 1,
   perPage: 20,
-  fields: ['title', 'excerpt']
+  fields: ['title', 'excerpt', 'author']
 })
   .then(results => {
     console.log('Search results:', results.data);
@@ -101,14 +105,18 @@ flatlayer.getEntry('post', 'my-image-post', ['title', 'featured_image'])
   .then(post => {
     const imageAttributes = flatlayer.getResponsiveImageAttributes(
       post.featured_image,
-      ['100vw', 'md:50vw', 'lg:33vw']
+      ['100vw', 'md:50vw', 'lg:33vw'],
+      {
+        defaultImageParams: { quality: 80, format: 'webp' },
+        displaySize: [800, 600]
+      }
     );
     console.log('Image attributes:', imageAttributes);
   })
   .catch(error => console.error('Error fetching post:', error));
 ```
 
-For more details on image handling and responsive sizing, see the [Image Handling Guide](./image-handling.md) and [Calculating Sizes Guide](./calculating-sizes.md).
+For more details on image handling and responsive sizing, see the [Image Handling Guide](./image-handling.md) and [Image Sizes Guide](./image-sizes.md).
 
 ## Advanced Usage
 
@@ -120,7 +128,11 @@ The SDK supports advanced filtering capabilities:
 const filter = {
   status: 'published',
   category: { $in: ['technology', 'programming'] },
-  published_at: { $gte: '2023-01-01' }
+  published_at: { $gte: '2023-01-01' },
+  $or: [
+    { author: 'John Doe' },
+    { author: 'Jane Smith' }
+  ]
 };
 
 flatlayer.getEntryList('post', { filter })
@@ -135,7 +147,7 @@ For more information on filtering, see the [Advanced Filtering Guide](./advanced
 You can specify which fields to retrieve:
 
 ```javascript
-const fields = ['title', 'author.name', 'content'];
+const fields = ['title', 'author.name', 'content', 'meta.tags'];
 
 flatlayer.getEntry('post', 'my-first-post', fields)
   .then(post => console.log('Selected post data:', post))
@@ -154,7 +166,11 @@ import Flatlayer from 'flatlayer-sdk';
 interface BlogPost {
   title: string;
   content: string;
-  author: string;
+  author: {
+    name: string;
+    email: string;
+  };
+  published_at: string;
 }
 
 const flatlayer: Flatlayer = new Flatlayer('https://api.yourflatlayerinstance.com');
@@ -162,8 +178,8 @@ const flatlayer: Flatlayer = new Flatlayer('https://api.yourflatlayerinstance.co
 flatlayer.getEntry<BlogPost>('post', 'my-first-post')
   .then(post => {
     console.log(post.title);
-    console.log(post.content);
-    console.log(post.author);
+    console.log(post.author.name);
+    console.log(new Date(post.published_at));
   })
   .catch(error => console.error('Error:', error));
 ```
@@ -177,12 +193,16 @@ If you're using Svelte, the SDK provides components for easy integration:
 import { onMount } from 'svelte';
 import { flatlayer } from './flatlayer-instance';
 import ResponsiveImage from 'flatlayer-sdk/svelte/ResponsiveImage';
+import Markdown from 'flatlayer-sdk/svelte/Markdown';
+import { MarkdownParser } from 'flatlayer-sdk';
 
 let post = null;
+let parsedContent = [];
 
 onMount(async () => {
   try {
     post = await flatlayer.getEntry('post', 'my-awesome-post');
+    parsedContent = MarkdownParser.parseContent(post.content);
   } catch (error) {
     console.error('Error fetching post:', error);
   }
@@ -195,8 +215,10 @@ onMount(async () => {
     baseUrl={flatlayer.baseUrl}
     imageData={post.featured_image}
     sizes={['100vw', 'md:50vw', 'lg:33vw']}
+    lazyLoad={true}
+    blurRadius={20}
   />
-  <div>{@html post.content}</div>
+  <Markdown content={parsedContent} />
 {:else}
   <p>Loading...</p>
 {/if}
@@ -213,7 +235,11 @@ flatlayer.getEntry('post', 'non-existent-post')
   .then(post => console.log('Post:', post))
   .catch(error => {
     if (error instanceof FlatlayerError) {
-      console.error(`API Error (${error.status}):`, error.message);
+      if (error.status === 404) {
+        console.error('Post not found');
+      } else {
+        console.error(`API Error (${error.status}):`, error.message);
+      }
     } else {
       console.error('An unexpected error occurred:', error.message);
     }
@@ -230,5 +256,6 @@ Now that you're familiar with the basics of the Flatlayer SDK, you can explore m
 - Dive into [Image Handling](./image-handling.md) and [Image Sizes](./image-sizes.md) for optimal responsive image management.
 - Explore [Search Functionality](./search.md) for implementing powerful content search features.
 - Check out the [Advanced Usage Guide](./advanced.md) for performance tips and best practices.
+- Learn about [Markdown Parsing and Rendering](./markdown.md) for working with rich content.
 
 By leveraging these features, you can create efficient and powerful applications with the Flatlayer SDK. Happy coding!
