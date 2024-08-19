@@ -7,9 +7,8 @@
     export let baseUrl = PUBLIC_FLATLAYER_ENDPOINT;
     export let imageData = undefined;
     export let defaultTransforms = {};
-    export let breakpoints = {};
     export let imageEndpoint = null;
-    export let sizes = ['100vw'];
+    export let sizes = undefined;
     export let attributes = {};
     export let isFluid = true;
     export let displaySize = false;
@@ -18,6 +17,7 @@
     export let alt = undefined;
     export let title = undefined;
     export let fallbackSrc = undefined;
+    export let maxWidth = undefined;
 
     // Local state
     let flatlayerImage;
@@ -28,8 +28,12 @@
     let imageElement;
     let thumbhashUrl = '';
     let error = false;
+    let calculatedSizes = '100vw';
+    let isMounted = false;
 
     const dispatch = createEventDispatcher();
+
+    const WIDTH_MIN_SIZE = 40;
 
     $: {
         if (imageData) {
@@ -37,21 +41,31 @@
                 baseUrl,
                 imageData,
                 defaultTransforms,
-                breakpoints,
                 imageEndpoint
             );
             thumbhashUrl = flatlayerImage.getThumbhashDataUrl();
         }
     }
 
+    $: {
+        if (sizes !== undefined) {
+            calculatedSizes = sizes;
+        } else if (!isMounted && maxWidth) {
+            calculatedSizes = `(min-width: ${maxWidth}px) ${maxWidth}px, 100vw`;
+        } else if (isMounted && imageElement) {
+            calculatedSizes = `${imageElement.offsetWidth}px`;
+        } else {
+            calculatedSizes = '100vw';
+        }
+        console.log(calculatedSizes);
+    }
+
     $: if (flatlayerImage) {
         imgAttributes = flatlayerImage.generateImgAttributes(
-            sizes,
             {
                 ...attributes,
                 loading: lazyLoad ? 'lazy' : 'eager',
             },
-            isFluid,
             displaySize
         );
     }
@@ -62,6 +76,7 @@
             willAnimate = false;
         }
         dispatch('load');
+        updateImageSizes();
     }
 
     function handleImageError() {
@@ -69,7 +84,27 @@
         dispatch('error');
     }
 
+    function getElementWidth(el) {
+        let width = el.offsetWidth;
+        if (width < WIDTH_MIN_SIZE) {
+            width = WIDTH_MIN_SIZE;
+            let parent = el.parentNode;
+            while (parent && width < WIDTH_MIN_SIZE) {
+                width = parent.offsetWidth;
+                parent = parent.parentNode;
+            }
+        }
+        return width;
+    }
+
+    function updateImageSizes() {
+        if (imageElement && imageElement.complete && imageElement.naturalWidth > 0 && sizes === undefined) {
+            calculatedSizes = `${getElementWidth(imageElement)}px`;
+        }
+    }
+
     onMount(() => {
+        isMounted = true;
         if (imageElement.complete) {
             handleImageLoad();
         } else {
@@ -88,10 +123,17 @@
             imageElement.onerror = handleImageError;
         }
 
+        if (sizes === undefined) {
+            window.addEventListener('resize', updateImageSizes, false);
+        }
+
         return () => {
             if (imageElement) {
                 imageElement.onload = null;
                 imageElement.onerror = null;
+            }
+            if (sizes === undefined) {
+                window.removeEventListener('resize', updateImageSizes, false);
             }
         };
     });
@@ -102,6 +144,7 @@
          style="--blur-radius: {blurRadius}px; background-image: url({thumbhashUrl}); background-size: cover;">
         <img
                 {...imgAttributes}
+                sizes={calculatedSizes}
                 alt={alt || flatlayerImage.getAlt()}
                 {title}
                 class:imageLoaded
