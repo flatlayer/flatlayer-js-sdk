@@ -6,6 +6,7 @@ import { thumbHashToDataURL } from 'thumbhash';
  * @class
  */
 class FlatlayerImage {
+    static DECREMENT = 0.9; // 10% decrement
     static MIN_SIZE = 100;
     static MAX_SIZE = 8192;
 
@@ -32,9 +33,12 @@ class FlatlayerImage {
      * @returns {Object} An object with image attributes.
      */
     generateImgAttributes(attributes = {}, displaySize = null) {
+        const srcset = this.generateSrcset(true, displaySize);
+
         const defaultAttributes = {
             src: this.getUrl(this.getBaseTransforms(displaySize)),
             alt: this.getAlt(),
+            srcset: srcset,
             ...this.getDimensions(displaySize)
         };
 
@@ -74,6 +78,75 @@ class FlatlayerImage {
     }
 
     /**
+     * Generate the srcset attribute.
+     * @param {boolean} isFluid - Whether to use fluid sizing.
+     * @param {Array<number>|null} [displaySize=null] - The intended display size [width, height].
+     * @returns {string} The srcset attribute value.
+     */
+    generateSrcset(isFluid, displaySize = null) {
+        const maxWidth = this.getMediaWidth();
+        let srcset = [];
+
+        if (displaySize) {
+            const [baseWidth, baseHeight] = displaySize;
+            const aspectRatio = baseHeight / baseWidth;
+
+            if (isFluid) {
+                srcset = this.generateFluidSrcset(baseWidth, maxWidth, aspectRatio);
+            } else {
+                srcset = this.generateFixedSrcset(baseWidth, baseHeight, maxWidth);
+            }
+        } else if (maxWidth > 0) {
+            srcset = isFluid
+                ? this.generateFluidSrcset(maxWidth, maxWidth)
+                : [this.formatSrcsetEntry(maxWidth)];
+        }
+
+        return srcset.filter((v, i, a) => a.indexOf(v) === i).join(', ');
+    }
+
+    /**
+     * Generate srcset entries for fluid sizing.
+     * @param {number} baseWidth - The base width for fluid sizing.
+     * @param {number} maxWidth - The maximum allowed width.
+     * @param {number|null} [aspectRatio=null] - The aspect ratio to maintain.
+     * @returns {Array<string>} Array of srcset entries.
+     */
+    generateFluidSrcset(baseWidth, maxWidth, aspectRatio = null) {
+        const srcset = [];
+        let currentWidth = Math.min(baseWidth * 2, maxWidth);
+
+        while (currentWidth > FlatlayerImage.MIN_SIZE) {
+            const currentHeight = aspectRatio ? Math.round(currentWidth * aspectRatio) : null;
+            srcset.push(this.formatSrcsetEntry(currentWidth, currentHeight));
+            currentWidth = Math.max(FlatlayerImage.MIN_SIZE, Math.floor(currentWidth * FlatlayerImage.DECREMENT));
+        }
+
+        if (aspectRatio && !srcset.some(entry => entry.startsWith(`${baseWidth}w`))) {
+            srcset.push(this.formatSrcsetEntry(baseWidth, Math.round(baseWidth * aspectRatio)));
+        }
+
+        return srcset;
+    }
+
+    /**
+     * Generate srcset entries for fixed sizing.
+     * @param {number} baseWidth - The base width for fixed sizing.
+     * @param {number} baseHeight - The base height for fixed sizing.
+     * @param {number} maxWidth - The maximum allowed width.
+     * @returns {Array<string>} Array of srcset entries.
+     */
+    generateFixedSrcset(baseWidth, baseHeight, maxWidth) {
+        const srcset = [this.formatSrcsetEntry(baseWidth, baseHeight)];
+        const retinaWidth = Math.min(baseWidth * 2, maxWidth);
+        if (retinaWidth > baseWidth) {
+            const retinaHeight = Math.round(retinaWidth * (baseHeight / baseWidth));
+            srcset.push(this.formatSrcsetEntry(retinaWidth, retinaHeight));
+        }
+        return srcset;
+    }
+
+    /**
      * Get the width of the image.
      * @returns {number} The width of the image.
      */
@@ -87,6 +160,17 @@ class FlatlayerImage {
      */
     getMediaHeight() {
         return parseInt(this.imageData.height, 10) || 0;
+    }
+
+    /**
+     * Format a single srcset entry.
+     * @param {number} width - The width for the srcset entry.
+     * @param {number|null} [height=null] - The height for the srcset entry.
+     * @returns {string} A formatted srcset entry.
+     */
+    formatSrcsetEntry(width, height = null) {
+        const transforms = { ...this.defaultTransforms, w: width, ...(height ? { h: height } : {}) };
+        return `${this.getUrl(transforms)} ${width}w`;
     }
 
     /**

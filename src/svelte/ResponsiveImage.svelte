@@ -8,7 +8,7 @@
     export let imageData = undefined;
     export let defaultTransforms = {};
     export let imageEndpoint = null;
-    export let sizes = '100vw';
+    export let sizes = undefined;
     export let attributes = {};
     export let isFluid = true;
     export let displaySize = false;
@@ -28,11 +28,11 @@
     let imageElement;
     let thumbhashUrl = '';
     let error = false;
-    let dynamicSizes = sizes;
+    let calculatedSizes = '100vw';
+    let isMounted = false;
 
     const dispatch = createEventDispatcher();
 
-    const DEBOUNCE_TIMEOUT = 200;
     const WIDTH_MIN_SIZE = 40;
 
     $: {
@@ -47,9 +47,18 @@
         }
     }
 
-    $: calculatedSizes = maxWidth && dynamicSizes === '100vw'
-        ? `(min-width: ${maxWidth}px) ${maxWidth}px, 100vw`
-        : dynamicSizes;
+    $: {
+        if (sizes !== undefined) {
+            calculatedSizes = sizes;
+        } else if (!isMounted && maxWidth) {
+            calculatedSizes = `(min-width: ${maxWidth}px) ${maxWidth}px, 100vw`;
+        } else if (isMounted && imageElement) {
+            calculatedSizes = `${imageElement.offsetWidth}px`;
+        } else {
+            calculatedSizes = '100vw';
+        }
+        console.log(calculatedSizes);
+    }
 
     $: if (flatlayerImage) {
         imgAttributes = flatlayerImage.generateImgAttributes(
@@ -89,23 +98,13 @@
     }
 
     function updateImageSizes() {
-        if (imageElement && imageElement.complete && imageElement.naturalWidth > 0) {
-            const currentWidth = getElementWidth(imageElement);
-            dynamicSizes = `${currentWidth}px`;
+        if (imageElement && imageElement.complete && imageElement.naturalWidth > 0 && sizes === undefined) {
+            calculatedSizes = `${getElementWidth(imageElement)}px`;
         }
     }
 
-    function debounce(func, timeout) {
-        let timer;
-        return (...args) => {
-            clearTimeout(timer);
-            timer = setTimeout(() => func.apply(this, args), timeout);
-        };
-    }
-
-    const debouncedUpdateSizes = debounce(updateImageSizes, DEBOUNCE_TIMEOUT);
-
     onMount(() => {
+        isMounted = true;
         if (imageElement.complete) {
             handleImageLoad();
         } else {
@@ -124,14 +123,18 @@
             imageElement.onerror = handleImageError;
         }
 
-        window.addEventListener('resize', debouncedUpdateSizes, false);
+        if (sizes === undefined) {
+            window.addEventListener('resize', updateImageSizes, false);
+        }
 
         return () => {
             if (imageElement) {
                 imageElement.onload = null;
                 imageElement.onerror = null;
             }
-            window.removeEventListener('resize', debouncedUpdateSizes, false);
+            if (sizes === undefined) {
+                window.removeEventListener('resize', updateImageSizes, false);
+            }
         };
     });
 </script>
