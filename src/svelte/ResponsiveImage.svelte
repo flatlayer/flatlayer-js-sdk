@@ -1,6 +1,6 @@
 <script>
     import FlatlayerImage from '../flatlayer-image';
-    import { onMount, createEventDispatcher } from 'svelte';
+    import { onMount, afterUpdate, createEventDispatcher } from 'svelte';
     import { PUBLIC_FLATLAYER_ENDPOINT } from "$env/static/public";
 
     // Props
@@ -30,10 +30,25 @@
     let error = false;
     let calculatedSizes = '100vw';
     let isMounted = false;
+    let containerWidth = 0;
+    let viewportWidth = 0;
+    let resizeObserver;
 
     const dispatch = createEventDispatcher();
 
     const WIDTH_MIN_SIZE = 40;
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
 
     $: {
         if (imageData) {
@@ -47,21 +62,6 @@
         }
     }
 
-    $: {
-        if (sizes !== undefined) {
-            calculatedSizes = sizes;
-        } else if (displaySize && !isFluid) {
-            calculatedSizes = `${displaySize[0]}px`;
-        } else if (!isMounted && maxWidth) {
-            calculatedSizes = `(min-width: ${maxWidth}px) ${maxWidth}px, 100vw`;
-        } else if (isMounted && imageElement) {
-            calculatedSizes = `${imageElement.offsetWidth}px`;
-        } else {
-            calculatedSizes = '100vw';
-        }
-        console.log(calculatedSizes);
-    }
-
     $: if (flatlayerImage) {
         imgAttributes = flatlayerImage.generateImgAttributes(
             {
@@ -72,37 +72,63 @@
         );
     }
 
+    const getInitialSizes = () => {
+        if (sizes !== undefined) {
+            return sizes;
+        } else if (displaySize && !isFluid) {
+            return `${displaySize[0]}px`;
+        } else if (maxWidth) {
+            return `(min-width: ${maxWidth}px) ${maxWidth}px, 100vw`;
+        } else {
+            return '100vw';
+        }
+    };
+    calculatedSizes = getInitialSizes();
+    console.log(calculatedSizes);
+
+    const getContainerWidth = () => {
+        if (!imageElement) return 0;
+        let el = imageElement;
+        while (el && el.offsetWidth < WIDTH_MIN_SIZE) {
+            el = el.parentElement;
+        }
+        return el ? el.offsetWidth : WIDTH_MIN_SIZE;
+    };
+
+    const updateSizes = () => {
+        viewportWidth = window.innerWidth;
+        containerWidth = getContainerWidth();
+
+        if (sizes !== undefined) {
+            calculatedSizes = sizes;
+        } else if (displaySize && !isFluid) {
+            calculatedSizes = `${displaySize[0]}px`;
+        } else if (maxWidth) {
+            if (viewportWidth >= maxWidth) {
+                calculatedSizes = `${maxWidth}px`;
+            } else {
+                calculatedSizes = `${Math.min(containerWidth, maxWidth)}px`;
+            }
+        } else {
+            const percentage = Math.round((containerWidth / viewportWidth) * 100);
+            calculatedSizes = `(min-width: ${viewportWidth}px) ${containerWidth}px, ${percentage}vw`;
+        }
+    };
+
+    const debouncedUpdateSizes = debounce(updateSizes, 100);
+
     function handleImageLoad() {
         imageLoaded = true;
         if (shouldAnimate) {
             willAnimate = false;
         }
         dispatch('load');
-        updateImageSizes();
+        updateSizes();
     }
 
     function handleImageError() {
         error = true;
         dispatch('error');
-    }
-
-    function getElementWidth(el) {
-        let width = el.offsetWidth;
-        if (width < WIDTH_MIN_SIZE) {
-            width = WIDTH_MIN_SIZE;
-            let parent = el.parentNode;
-            while (parent && width < WIDTH_MIN_SIZE) {
-                width = parent.offsetWidth;
-                parent = parent.parentNode;
-            }
-        }
-        return width;
-    }
-
-    function updateImageSizes() {
-        if (imageElement && imageElement.complete && imageElement.naturalWidth > 0 && sizes === undefined) {
-            calculatedSizes = `${getElementWidth(imageElement)}px`;
-        }
     }
 
     onMount(() => {
@@ -125,20 +151,34 @@
             imageElement.onerror = handleImageError;
         }
 
-        if (sizes === undefined) {
-            window.addEventListener('resize', updateImageSizes, false);
+        if ('ResizeObserver' in window) {
+            resizeObserver = new ResizeObserver(debouncedUpdateSizes);
+            resizeObserver.observe(imageElement.parentElement);
         }
+
+        window.addEventListener('resize', debouncedUpdateSizes);
 
         return () => {
             if (imageElement) {
                 imageElement.onload = null;
                 imageElement.onerror = null;
             }
-            if (sizes === undefined) {
-                window.removeEventListener('resize', updateImageSizes, false);
+            if (resizeObserver) {
+                resizeObserver.disconnect();
             }
+            window.removeEventListener('resize', debouncedUpdateSizes);
         };
     });
+
+    afterUpdate(() => {
+        if (isMounted && imageElement) {
+            updateSizes();
+        }
+    });
+
+    $: if (isMounted && imageElement) {
+        updateSizes();
+    }
 </script>
 
 {#if imageData}
