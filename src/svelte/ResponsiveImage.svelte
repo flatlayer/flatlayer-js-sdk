@@ -50,6 +50,8 @@
     $: {
         if (sizes !== undefined) {
             calculatedSizes = sizes;
+        } else if (displaySize && !isFluid) {
+            calculatedSizes = `${displaySize[0]}px`;
         } else if (!isMounted && maxWidth) {
             calculatedSizes = `(min-width: ${maxWidth}px) ${maxWidth}px, 100vw`;
         } else if (isMounted && imageElement) {
