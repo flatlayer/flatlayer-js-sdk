@@ -268,6 +268,42 @@ sizes={[
 ]}
 ```
 
+## Image Sizes in Markdown Components
+
+When working with images inside a Markdown component, it's important to consider how sizes are handled. Typically, the `sizes` attribute for images in Markdown content is passed through the Markdown component's props or configuration.
+
+For example, in a Svelte Markdown component:
+
+```svelte
+<Markdown 
+  content={markdownContent} 
+  componentDefaults={{
+    ResponsiveImage: {
+      sizes: ['100vw', 'md:75vw', 'lg:50vw'],
+      // other image props...
+    }
+  }}
+/>
+```
+
+In this setup, all `ResponsiveImage` components within the Markdown content will use these default sizes. This approach allows for consistent sizing across all images in your Markdown content while still providing responsiveness.
+
+For blog post layouts, you might use a full-width approach for images:
+
+```svelte
+componentDefaults={{
+  ResponsiveImage: {
+    sizes: ['100vw'],
+    class: 'w-full h-auto rounded-xl shadow-sm',
+    // other image props...
+  }
+}}
+```
+
+This ensures that images in blog posts span the full width of their container, adjusting appropriately on different screen sizes.
+
+Remember, these size calculations should take into account the layout of your Markdown component within the broader page structure. If your Markdown content is contained within a narrower column on larger screens, adjust your sizes accordingly.
+
 ## Additional Considerations
 
 1. **Rem to Px Conversion**: Always convert rem values to px. In Tailwind, 1rem is typically 16px.
@@ -285,6 +321,8 @@ sizes={[
 7. **Svelte Reactivity**: Remember that Svelte components can have reactive declarations that affect layout. Always check for reactive statements that might influence the image size.
 
 8. **Unit Limitations**: Always use only px and vw units, and calc() expressions containing these units. Do not use em, rem, or any other CSS units in the `sizes` attribute.
+
+9. **Images in Markdown**: Consider images that are inside a Markdown component. These will usually occupy the full width of the Markdown component.
 
 ## Step-by-Step Process for Calculating Sizes
 
