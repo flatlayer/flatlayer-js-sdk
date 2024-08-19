@@ -7,11 +7,10 @@
     export let baseUrl = PUBLIC_FLATLAYER_ENDPOINT;
     export let imageData = undefined;
     export let defaultTransforms = {};
-    export let breakpoints = {};
     export let imageEndpoint = null;
-    export let sizes = ['100vw'];
+    export let sizes = '100vw'; // Changed to string
     export let attributes = {};
-    export let isFluid = true;
+    export const isFluid = true;
     export let displaySize = false;
     export let lazyLoad = true;
     export let blurRadius = 40;
@@ -37,7 +36,6 @@
                 baseUrl,
                 imageData,
                 defaultTransforms,
-                breakpoints,
                 imageEndpoint
             );
             thumbhashUrl = flatlayerImage.getThumbhashDataUrl();
@@ -46,12 +44,11 @@
 
     $: if (flatlayerImage) {
         imgAttributes = flatlayerImage.generateImgAttributes(
-            sizes,
             {
                 ...attributes,
                 loading: lazyLoad ? 'lazy' : 'eager',
+                sizes, // Add sizes attribute here
             },
-            isFluid,
             displaySize
         );
     }
