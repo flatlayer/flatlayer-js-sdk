@@ -269,16 +269,14 @@ class Flatlayer {
      * Create a new FlatlayerImage instance.
      * @param {Object} imageData - The image data object from the API.
      * @param {Object} [defaultTransforms={}] - Default transformation parameters.
-     * @param {Object} [breakpoints={}] - Custom breakpoints for responsive sizes.
      * @param {string} [imageEndpoint=null] - Custom image endpoint URL. If not provided, it uses the Flatlayer instance's imageEndpoint.
      * @returns {FlatlayerImage} A new FlatlayerImage instance.
      */
-    createImage(imageData, defaultTransforms = {}, breakpoints = {}, imageEndpoint = null) {
+    createImage(imageData, defaultTransforms = {}, imageEndpoint = null) {
         return new FlatlayerImage(
             this.baseUrl,
             imageData,
             defaultTransforms,
-            breakpoints,
             imageEndpoint || this.imageEndpoint
         );
     }
