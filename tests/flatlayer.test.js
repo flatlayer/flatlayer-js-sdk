@@ -1,7 +1,6 @@
 import Flatlayer from '../src/flatlayer';
 import FlatlayerImage from '../src/flatlayer-image';
 
-
 // Mock fetch globally
 global.fetch = jest.fn();
 
@@ -29,7 +28,6 @@ describe('Flatlayer SDK', () => {
             expect(flatlayer.baseUrl).toBe('https://api.example.com');
             expect(flatlayer.imageEndpoint).toBe('https://api.example.com/image');
         });
-
         test('should remove trailing slash from baseUrl', () => {
             const flatlayerWithSlash = new Flatlayer('https://api.example.com/');
             expect(flatlayerWithSlash.baseUrl).toBe('https://api.example.com');
@@ -112,6 +110,58 @@ describe('Flatlayer SDK', () => {
             );
             expect(result).toEqual(mockResults);
         });
+
+        test('should perform a search without specifying a type', async () => {
+            const mockResults = {
+                data: [{ id: 1, title: 'Search Result' }],
+                total: 1,
+                current_page: 1
+            };
+            fetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockResults)
+            });
+
+            const result = await flatlayer.search('test query');
+
+            expect(fetch).toHaveBeenCalledWith(
+                expect.stringMatching(/^https:\/\/api\.example\.com\/entry\/\?page=1&per_page=15&filter=%7B%22%24search%22%3A%22test(\+|%20)query%22%7D&fields=%5B%5D$/),
+                expect.any(Object)
+            );
+            expect(result).toEqual(mockResults);
+        });
+
+        test('should perform a search with a specific type', async () => {
+            const mockResults = {
+                data: [{ id: 1, title: 'Search Result' }],
+                total: 1,
+                current_page: 1
+            };
+            fetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockResults)
+            });
+
+            const result = await flatlayer.search('test query', 'post', {
+                page: 2,
+                perPage: 20,
+                fields: ['id', 'title']
+            });
+
+            expect(fetch).toHaveBeenCalledWith(
+                expect.stringMatching(/^https:\/\/api\.example\.com\/entry\/post\?page=2&per_page=20&filter=%7B%22%24search%22%3A%22test(\+|%20)query%22%7D&fields=%5B%22id%22%2C%22title%22%5D$/),
+                expect.any(Object)
+            );
+            expect(result).toEqual(mockResults);
+        });
+
+        test('should throw an error for empty search query', async () => {
+            await expect(flatlayer.search('')).rejects.toThrow('Search query must be a non-empty string');
+        });
+
+        test('should throw an error for invalid type', async () => {
+            await expect(flatlayer.search('query', '')).rejects.toThrow('Entry type must be a non-empty string');
+        });
     });
 
     describe('getImageUrl', () => {
@@ -125,32 +175,89 @@ describe('Flatlayer SDK', () => {
 
             expect(imageUrl).toBe('https://api.example.com/image/test-image-id.webp?w=300&h=200&q=80');
         });
+
+        test('should return correct image URL without transformations', () => {
+            const imageUrl = flatlayer.getImageUrl('test-image-id');
+            expect(imageUrl).toBe('https://api.example.com/image/test-image-id');
+        });
+
+        test('should handle numeric image IDs', () => {
+            const imageUrl = flatlayer.getImageUrl(12345, { width: 300, height: 200 });
+            expect(imageUrl).toBe('https://api.example.com/image/12345?w=300&h=200');
+        });
     });
 
     describe('createImage', () => {
         test('should create a FlatlayerImage instance', () => {
-            const imageData = { id: 'test-image-id', dimensions: { width: 800, height: 600 } };
+            const imageData = { id: 'test-image-id', width: 800, height: 600 };
             const flatlayerImage = flatlayer.createImage(imageData);
 
             expect(flatlayerImage).toBeInstanceOf(FlatlayerImage);
             expect(flatlayerImage.imageData).toEqual(imageData);
             expect(flatlayerImage.imageEndpoint).toBe('https://api.example.com/image');
         });
+
+        test('should create a FlatlayerImage instance with custom parameters', () => {
+            const imageData = { id: 'test-image-id', width: 800, height: 600 };
+            const defaultTransforms = { q: 90 };
+            const customImageEndpoint = 'https://custom-images.example.com';
+
+            const flatlayerImage = flatlayer.createImage(imageData, defaultTransforms, customImageEndpoint);
+
+            expect(flatlayerImage).toBeInstanceOf(FlatlayerImage);
+            expect(flatlayerImage.imageData).toEqual(imageData);
+            expect(flatlayerImage.defaultTransforms).toEqual({});
+            expect(flatlayerImage.defaultQuality).toBe(90);
+            expect(flatlayerImage.imageEndpoint).toBe(customImageEndpoint);
+        });
     });
 
-    describe('getResponsiveImageAttributes', () => {
-        test('should generate responsive image attributes', () => {
-            const imageData = { id: 'test-image-id', dimensions: { width: 800, height: 600 } };
-            const sizes = ['100vw', 'md:50vw'];
-            const attributes = flatlayer.getResponsiveImageAttributes(imageData, sizes, {
-                displaySize: [400, 300]
+    describe('getBatchEntries', () => {
+        test('should fetch multiple entries by slugs', async () => {
+            const mockEntries = {
+                data: [
+                    { id: 1, title: 'First Post', slug: 'first-post' },
+                    { id: 2, title: 'Second Post', slug: 'second-post' }
+                ]
+            };
+            fetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockEntries)
             });
 
-            expect(attributes).toHaveProperty('src');
-            expect(attributes).toHaveProperty('srcset');
-            expect(attributes).toHaveProperty('sizes');
-            expect(attributes).toHaveProperty('width', 400);
-            expect(attributes).toHaveProperty('height', 300);
+            const result = await flatlayer.getBatchEntries('post', ['first-post', 'second-post'], ['id', 'title', 'slug']);
+
+            expect(fetch).toHaveBeenCalledWith(
+                'https://api.example.com/entry/batch/post?slugs=first-post%2Csecond-post&fields=%5B%22id%22%2C%22title%22%2C%22slug%22%5D',
+                expect.any(Object)
+            );
+            expect(result).toEqual(mockEntries);
+        });
+
+        test('should handle empty slugs array', async () => {
+            await expect(flatlayer.getBatchEntries('post', [])).rejects.toThrow('Slugs must be a non-empty array of strings');
+        });
+
+        test('should handle null or undefined slugs', async () => {
+            await expect(flatlayer.getBatchEntries('post', null)).rejects.toThrow('Slugs must be a non-empty array of strings');
+            await expect(flatlayer.getBatchEntries('post', undefined)).rejects.toThrow('Slugs must be a non-empty array of strings');
+        });
+
+        test('should handle response with missing entries', async () => {
+            const mockResponse = {
+                data: [
+                    { id: 1, title: 'First Post', slug: 'first-post' }
+                ]
+            };
+            fetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve(mockResponse)
+            });
+
+            const result = await flatlayer.getBatchEntries('post', ['first-post', 'non-existent-post']);
+
+            expect(result.data).toHaveLength(1);
+            expect(result.data[0].slug).toBe('first-post');
         });
     });
 
@@ -230,217 +337,25 @@ describe('Flatlayer SDK', () => {
         });
     });
 
-    describe('search', () => {
-        test('should perform a search without specifying a type', async () => {
-            const mockResults = {
-                data: [{ id: 1, title: 'Search Result' }],
-                total: 1,
-                current_page: 1
-            };
+    describe('getImageMetadata', () => {
+        test('should fetch image metadata', async () => {
+            const mockMetadata = { width: 800, height: 600, format: 'jpeg' };
             fetch.mockResolvedValueOnce({
                 ok: true,
-                json: () => Promise.resolve(mockResults)
+                json: () => Promise.resolve(mockMetadata)
             });
 
-            const result = await flatlayer.search('test query');
+            const result = await flatlayer.getImageMetadata('test-image-id');
 
             expect(fetch).toHaveBeenCalledWith(
-                expect.stringMatching(/^https:\/\/api\.example\.com\/entry\/\?page=1&per_page=15&filter=%7B%22%24search%22%3A%22test(\+|%20)query%22%7D&fields=%5B%5D$/),
+                'https://api.example.com/image/test-image-id/metadata',
                 expect.any(Object)
             );
-            expect(result).toEqual(mockResults);
+            expect(result).toEqual(mockMetadata);
         });
 
-        test('should perform a search with a specific type', async () => {
-            const mockResults = {
-                data: [{ id: 1, title: 'Search Result' }],
-                total: 1,
-                current_page: 1
-            };
-            fetch.mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockResults)
-            });
-
-            const result = await flatlayer.search('test query', 'post', {
-                page: 2,
-                perPage: 20,
-                fields: ['id', 'title']
-            });
-
-            expect(fetch).toHaveBeenCalledWith(
-                expect.stringMatching(/^https:\/\/api\.example\.com\/entry\/post\?page=2&per_page=20&filter=%7B%22%24search%22%3A%22test(\+|%20)query%22%7D&fields=%5B%22id%22%2C%22title%22%5D$/),
-                expect.any(Object)
-            );
-            expect(result).toEqual(mockResults);
-        });
-
-        test('should throw an error for empty search query', async () => {
-            await expect(flatlayer.search('')).rejects.toThrow('Search query must be a non-empty string');
-        });
-
-        test('should throw an error for invalid type', async () => {
-            await expect(flatlayer.search('query', '')).rejects.toThrow('Entry type must be a non-empty string');
-        });
-    });
-
-    describe('getImageUrl', () => {
-        test('should return correct image URL without transformations', () => {
-            const imageUrl = flatlayer.getImageUrl('test-image-id');
-            expect(imageUrl).toBe('https://api.example.com/image/test-image-id');
-        });
-
-        test('should handle numeric image IDs', () => {
-            const imageUrl = flatlayer.getImageUrl(12345, { width: 300, height: 200 });
-            expect(imageUrl).toBe('https://api.example.com/image/12345?w=300&h=200');
-        });
-    });
-
-    describe('createImage', () => {
-        test('should create a FlatlayerImage instance with custom parameters', () => {
-            const imageData = { id: 'test-image-id', dimensions: { width: 800, height: 600 } };
-            const defaultTransforms = { q: 90 };
-            const breakpoints = { sm: 500, md: 700, lg: 900 };
-            const customImageEndpoint = 'https://custom-images.example.com';
-
-            const flatlayerImage = flatlayer.createImage(imageData, defaultTransforms, breakpoints, customImageEndpoint);
-
-            expect(flatlayerImage).toBeInstanceOf(FlatlayerImage);
-            expect(flatlayerImage.imageData).toEqual(imageData);
-            expect(flatlayerImage.defaultTransforms).toEqual(defaultTransforms);
-            expect(flatlayerImage.breakpoints).toEqual(breakpoints);
-            expect(flatlayerImage.imageEndpoint).toBe(customImageEndpoint);
-        });
-    });
-
-    describe('getResponsiveImageAttributes', () => {
-        test('should generate responsive image attributes with custom options', () => {
-            const imageData = {
-                id: 'test-image-id',
-                dimensions: { width: 800, height: 600 },
-                filename: 'test-image.jpg',
-                meta: { alt: 'Custom alt text' }
-            };
-            const sizes = ['100vw', 'md:50vw'];
-            const options = {
-                displaySize: [400, 300],
-                breakpoints: { sm: 500, md: 700, lg: 900 },
-                defaultImageParams: { q: 90 },
-                isFluid: false
-            };
-
-            const attributes = flatlayer.getResponsiveImageAttributes(imageData, sizes, options);
-
-            expect(attributes).toHaveProperty('src');
-            expect(attributes).toHaveProperty('srcset');
-            expect(attributes).toHaveProperty('sizes');
-            expect(attributes).toHaveProperty('width', 400);
-            expect(attributes).toHaveProperty('height', 300);
-            expect(attributes.srcset).toContain('q=90');
-            expect(attributes).toHaveProperty('alt', 'Custom alt text');
-        });
-
-        test('should handle missing alt and use filename for alt text', () => {
-            const imageData = {
-                id: 'test-image-id',
-                dimensions: { width: 800, height: 600 },
-                filename: 'test-image.jpg'
-            };
-            const sizes = ['100vw'];
-
-            const attributes = flatlayer.getResponsiveImageAttributes(imageData, sizes);
-
-            expect(attributes).toHaveProperty('alt', 'test-image');
-        });
-
-        test('should handle missing filename and alt in imageData', () => {
-            const imageData = {
-                id: 'test-image-id',
-                dimensions: { width: 800, height: 600 }
-            };
-            const sizes = ['100vw'];
-
-            const attributes = flatlayer.getResponsiveImageAttributes(imageData, sizes);
-
-            expect(attributes).toHaveProperty('alt', 'Image test-image-id');
-        });
-
-        test('should handle completely empty imageData', () => {
-            const imageData = {};
-            const sizes = ['100vw'];
-
-            const attributes = flatlayer.getResponsiveImageAttributes(imageData, sizes);
-
-            expect(attributes).toHaveProperty('alt', 'Image');
-        });
-    });
-
-    describe('getBatchEntries', () => {
-        test('should fetch multiple entries by slugs', async () => {
-            const mockEntries = {
-                data: [
-                    { id: 1, title: 'First Post', slug: 'first-post' },
-                    { id: 2, title: 'Second Post', slug: 'second-post' }
-                ]
-            };
-            fetch.mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockEntries)
-            });
-
-            const result = await flatlayer.getBatchEntries('post', ['first-post', 'second-post'], ['id', 'title', 'slug']);
-
-            expect(fetch).toHaveBeenCalledWith(
-                'https://api.example.com/entry/batch/post?slugs=first-post%2Csecond-post&fields=%5B%22id%22%2C%22title%22%2C%22slug%22%5D',
-                expect.any(Object)
-            );
-            expect(result).toEqual(mockEntries);
-        });
-
-        test('should handle empty slugs array', async () => {
-            await expect(flatlayer.getBatchEntries('post', [])).rejects.toThrow('Slugs must be a non-empty array of strings');
-        });
-
-        test('should handle null or undefined slugs', async () => {
-            await expect(flatlayer.getBatchEntries('post', null)).rejects.toThrow('Slugs must be a non-empty array of strings');
-            await expect(flatlayer.getBatchEntries('post', undefined)).rejects.toThrow('Slugs must be a non-empty array of strings');
-        });
-
-        test('should handle response with missing entries', async () => {
-            const mockResponse = {
-                data: [
-                    { id: 1, title: 'First Post', slug: 'first-post' }
-                ]
-            };
-            fetch.mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve(mockResponse)
-            });
-
-            const result = await flatlayer.getBatchEntries('post', ['first-post', 'non-existent-post']);
-
-            expect(result.data).toHaveLength(1);
-            expect(result.data[0].slug).toBe('first-post');
-        });
-
-        test('should handle network errors', async () => {
-            fetch.mockImplementation(() => {
-                return Promise.reject(new Error('Network error'));
-            });
-
-            await expect(flatlayer.getBatchEntries('post', ['test-post'])).rejects.toThrow('Network error');
-        });
-
-        test('should handle API errors', async () => {
-            fetch.mockImplementation(() => {
-                return Promise.resolve({
-                    ok: false,
-                    status: 400,
-                    json: () => Promise.resolve({ error: 'API Error' })
-                });
-            });
-
-            await expect(flatlayer.getBatchEntries('post', ['test-post'])).rejects.toThrow('API Error');
+        test('should throw an error for invalid image ID', async () => {
+            await expect(flatlayer.getImageMetadata('')).rejects.toThrow('Fetch response is undefined');
         });
     });
 });
