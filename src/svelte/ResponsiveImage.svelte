@@ -84,7 +84,6 @@
         }
     };
     calculatedSizes = getInitialSizes();
-    console.log(calculatedSizes);
 
     const getContainerWidth = () => {
         if (!imageElement) return 0;
